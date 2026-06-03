@@ -1,0 +1,1833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BROACH — a pen &amp; paper number puzzle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Gaegu:wght@400;700&family=Special+Elite&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4ecd8;
+    --paper-dark:#e9dec2;
+    --grid:#bcd3d6;
+    --grid-strong:#a9c4c8;
+    --ink:#26303b;
+    --ink-soft:#46505c;
+    --red:#b5402f;
+    --red-soft:#cf6a59;
+    --green:#3f7d4f;
+    --gold:#c79a3a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    font-family:'Gaegu',cursive;
+    color:var(--ink);
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:26px 26px, 26px 26px;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:18px 14px 40px;
+    position:relative;
+  }
+  body::before{
+    content:"";position:fixed;top:0;bottom:0;left:62px;width:2px;
+    background:rgba(181,64,47,.35);pointer-events:none;z-index:0;
+  }
+  .screen{width:100%;max-width:560px;position:relative;z-index:1;}
+  #game{max-width:840px;}
+  .hidden{display:none !important;}
+
+  header{text-align:center;margin-bottom:6px;position:relative;}
+  h1{
+    font-family:'Special Elite',monospace;
+    font-size:clamp(34px,9vw,52px);
+    letter-spacing:6px;
+    color:var(--ink);
+    text-shadow:1px 1px 0 rgba(0,0,0,.12);
+  }
+  .subtitle{
+    font-family:'Caveat',cursive;font-size:22px;color:var(--red);
+    transform:rotate(-1.5deg);margin-top:-4px;
+  }
+
+  /* ---------- menu ---------- */
+  .menu-intro{font-family:'Caveat';font-size:24px;text-align:center;color:var(--ink-soft);margin:18px 0 14px;transform:rotate(-.5deg);}
+  .menu-intro b{color:var(--ink);}
+  .dcards{display:flex;flex-direction:column;gap:14px;}
+  .dcard{
+    border:2.5px solid var(--ink);background:rgba(255,255,255,.4);
+    border-radius:12px 10px 13px 11px;padding:14px 16px;cursor:pointer;text-align:left;
+    box-shadow:3px 3px 0 rgba(38,48,59,.18);transition:transform .08s, background .15s;
+    position:relative;
+  }
+  .dcard:active{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(38,48,59,.18);}
+  .dcard h3{font-family:'Special Elite';font-size:24px;letter-spacing:2px;display:flex;align-items:center;gap:10px;}
+  .dcard p{font-family:'Gaegu';font-size:16px;color:var(--ink-soft);margin-top:3px;line-height:1.4;}
+  .dcard .cap{font-family:'Caveat';font-size:19px;color:var(--red);float:right;}
+  .dcard.imp{border-color:var(--red);background:rgba(181,64,47,.07);}
+  .dcard.imp h3{color:var(--red);}
+  .dcard{cursor:pointer;}
+  .dsection{font-family:'Caveat';font-size:20px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:2px;
+    margin:6px 2px -4px;display:flex;align-items:center;gap:10px;}
+  .dsection::after{content:'';flex:1;height:2px;background:repeating-linear-gradient(90deg,var(--ink-soft) 0 6px,transparent 6px 12px);opacity:.5;}
+  #tip{position:fixed;z-index:200;max-width:240px;background:var(--ink);color:var(--paper);
+    font-family:'Gaegu';font-size:15px;line-height:1.45;padding:10px 13px;border-radius:10px;
+    box-shadow:3px 4px 0 rgba(38,48,59,.22);pointer-events:none;opacity:0;transform:translateY(-50%);
+    transition:opacity .12s ease;}
+  #tip.show{opacity:1;}
+  .easy-steps{display:flex;align-items:center;gap:7px;margin-top:9px;flex-wrap:wrap;}
+  .easy-steps .lbl{font-family:'Caveat';font-size:18px;color:var(--ink-soft);}
+  .lim{
+    font-family:'Special Elite';font-size:17px;width:36px;height:36px;
+    border:2.5px solid var(--ink);background:var(--paper);color:var(--ink);
+    border-radius:10px 8px 11px 9px;cursor:pointer;box-shadow:2px 2px 0 rgba(38,48,59,.2);
+    transition:transform .08s;
+  }
+  .lim:active{transform:translate(2px,2px);box-shadow:0 0 0;}
+  .lim.sel{background:var(--red);color:var(--paper);transform:rotate(-2deg);}
+
+  /* ---------- game ---------- */
+  .game-bar{display:flex;justify-content:space-between;align-items:center;margin:6px 2px 6px;}
+  .mode-name{font-family:'Special Elite';font-size:22px;letter-spacing:3px;}
+  .mode-name .cap{font-family:'Caveat';font-size:18px;color:var(--red);margin-left:8px;letter-spacing:0;}
+  .mode-hint{font-family:'Caveat';font-size:19px;color:var(--ink-soft);text-align:center;margin:2px 4px 14px;transform:rotate(-.4deg);line-height:1.3;}
+
+  .boards{display:flex;gap:18px;justify-content:center;align-items:flex-start;flex-wrap:wrap;}
+  .board-card{
+    flex:1 1 280px;max-width:360px;min-width:250px;
+    border:2.5px solid var(--ink);background:rgba(255,255,255,.32);
+    border-radius:13px 11px 12px 14px;padding:10px 10px 12px;position:relative;
+    box-shadow:3px 3px 0 rgba(38,48,59,.14);
+  }
+  .bc-title{font-family:'Special Elite';font-size:18px;letter-spacing:2px;text-align:center;margin-bottom:4px;color:var(--ink);}
+  .bc-topbar{display:flex;justify-content:space-between;align-items:flex-end;padding:0 2px;}
+  .target-label{font-family:'Caveat';font-size:18px;color:var(--ink-soft);}
+  .target-num{
+    font-family:'Special Elite';font-size:38px;line-height:.9;color:var(--red);
+    position:relative;display:inline-block;padding:0 6px;
+  }
+  .target-num::after{
+    content:"";position:absolute;left:-6px;right:-6px;top:-6px;bottom:-4px;
+    border:2.5px solid var(--red);border-radius:50%;
+    transform:rotate(-4deg) scale(1.05,1.15);opacity:.85;
+  }
+  .bc-steps{font-family:'Caveat';font-size:18px;color:var(--ink-soft);}
+  .bc-steps b{font-family:'Special Elite';font-size:19px;color:var(--ink);}
+  .bc-steps.over b{color:var(--red);}
+
+  .ledger{
+    background:rgba(255,255,255,.4);
+    border:2px solid var(--ink);
+    border-radius:10px 12px 9px 13px;
+    padding:6px 10px;margin:8px 2px 8px;
+    font-family:'Special Elite';font-size:17px;color:var(--ink);
+    min-height:40px;display:flex;align-items:center;flex-wrap:wrap;gap:2px;
+    box-shadow:2px 2px 0 rgba(38,48,59,.15);
+    line-height:1.5;word-break:break-word;
+  }
+  .ledger .placeholder{font-family:'Gaegu';color:var(--ink-soft);font-size:16px;}
+  .ledger .runtotal{color:var(--red);}
+
+  .svg-wrap{position:relative;}
+  svg.board{width:100%;height:auto;display:block;touch-action:manipulation;}
+
+  .node circle{transition:fill .15s, stroke .15s;cursor:pointer;}
+  .node.carry circle{stroke:var(--gold);stroke-width:3.4;fill:rgba(199,154,58,.18);}
+  .node.carry text{fill:#8a6d1f;}
+  @keyframes hintpulse{0%,100%{stroke-width:2.4;}50%{stroke-width:6.5;}}
+  .node.hinted circle{stroke:var(--gold);animation:hintpulse .7s ease-in-out 3;}
+  .btn.hint{border-color:var(--gold);}
+  .btn.hint .bulb{filter:saturate(1.2);}
+  .btn.hint.spent{opacity:.4;cursor:default;}
+  #connectTimer.low .time{color:var(--red);}
+  .node text{font-family:'Special Elite';font-size:22px;fill:var(--ink);pointer-events:none;user-select:none;}
+  .node.used circle{fill:var(--ink);}
+  .node.used text{fill:var(--paper);}
+  .node.start circle{fill:var(--red);}
+  .node.start text{fill:var(--paper);}
+  .node.avail circle{fill:#fff;}
+  .node.sealed circle{fill:#fff;stroke-dasharray:5 4;}
+  .node.sealed text{fill:var(--ink-soft);}
+  .node.locked circle{fill:var(--paper-dark);stroke:var(--red);stroke-dasharray:5 4;cursor:default;}
+  .node.locked text{fill:var(--red);}
+  .edge-label{font-family:'Special Elite';font-size:18px;fill:var(--red);}
+  .order-tag{font-family:'Gaegu';font-size:12px;font-weight:700;}
+
+  .ops{display:flex;justify-content:center;gap:8px;margin:8px 0 8px;}
+  .op{
+    width:48px;height:48px;border:2.5px solid var(--ink);background:var(--paper);
+    border-radius:13px 10px 14px 11px;font-family:'Special Elite';font-size:26px;
+    color:var(--ink);cursor:pointer;transition:transform .08s, background .15s, color .15s;
+    box-shadow:2px 2px 0 rgba(38,48,59,.2);
+  }
+  .op:active{transform:translate(2px,2px);box-shadow:0 0 0;}
+  .op.sel{background:var(--ink);color:var(--paper);transform:rotate(-2deg);}
+
+  .bc-controls{display:flex;justify-content:center;gap:8px;}
+  .controls-main{display:flex;justify-content:center;gap:10px;margin-top:18px;flex-wrap:wrap;}
+  .btn{
+    font-family:'Gaegu';font-weight:700;font-size:17px;
+    border:2.5px solid var(--ink);background:var(--paper);color:var(--ink);
+    padding:6px 14px;border-radius:11px 9px 12px 10px;cursor:pointer;
+    box-shadow:2px 2px 0 rgba(38,48,59,.2);transition:transform .08s;
+  }
+  .btn:active{transform:translate(2px,2px);box-shadow:0 0 0;}
+  .btn.primary{background:var(--ink);color:var(--paper);}
+
+  .bc-msg{text-align:center;font-family:'Caveat';font-size:18px;min-height:22px;margin-top:6px;}
+  .bc-msg.bad{color:var(--red);}
+  .bc-msg.good{color:var(--green);}
+
+  .link-arrow{
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Caveat';font-size:20px;color:var(--red);
+    flex:0 0 auto;align-self:center;text-align:center;padding:4px;min-width:60px;
+  }
+
+  .game-msg{text-align:center;font-family:'Caveat';font-size:26px;min-height:30px;margin-top:12px;transform:rotate(-.6deg);}
+  .game-msg.good{color:var(--green);}
+
+  /* stamp */
+  .stamp{position:absolute;inset:0;display:none;align-items:center;justify-content:center;pointer-events:none;z-index:5;}
+  .stamp.show{display:flex;animation:thunk .4s ease-out;}
+  .stamp span{
+    font-family:'Special Elite';font-size:40px;color:var(--green);
+    border:5px solid var(--green);padding:6px 18px;border-radius:8px;
+    transform:rotate(-9deg);opacity:.88;background:rgba(244,236,216,.4);letter-spacing:3px;
+  }
+  @keyframes thunk{0%{transform:scale(2);opacity:0;}60%{transform:scale(.92);opacity:1;}100%{transform:scale(1);}}
+
+  /* overlay sub-puzzle */
+  .overlay{position:fixed;inset:0;background:rgba(38,48,59,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;}
+  .sub-card{
+    background:var(--paper);
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:22px 22px,22px 22px;
+    border:3px solid var(--ink);border-radius:14px 12px 13px 15px;
+    max-width:420px;width:100%;max-height:92vh;overflow:auto;padding:14px 14px 16px;position:relative;
+    box-shadow:6px 6px 0 rgba(38,48,59,.3);
+  }
+  .sub-head{font-family:'Caveat';font-size:23px;color:var(--red);text-align:center;margin-bottom:2px;transform:rotate(-.6deg);}
+  .sub-sub{font-family:'Gaegu';font-size:15px;color:var(--ink-soft);text-align:center;margin-bottom:6px;}
+  .close-sub{display:block;margin:10px auto 0;}
+
+  .rules{
+    margin-top:26px;font-family:'Gaegu';font-size:15px;color:var(--ink-soft);
+    border-top:2px dashed var(--grid-strong);padding-top:14px;line-height:1.6;
+  }
+  .rules b{color:var(--ink);}
+  .rules .pen{font-family:'Caveat';font-size:19px;color:var(--red);}
+
+  /* ---------- menu footer ---------- */
+  .menu-foot{display:flex;justify-content:center;gap:12px;margin-top:18px;}
+
+  /* ---------- about ---------- */
+  #about{max-width:480px;text-align:center;}
+  .logo-frame{
+    width:min(300px,80vw);margin:18px auto 0;
+    box-shadow:6px 6px 0 rgba(38,48,59,.25);border:3px solid var(--ink);
+    image-rendering:pixelated;line-height:0;
+  }
+  .logo-frame svg{display:block;width:100%;height:auto;}
+  .about-copy{font-family:'Press Start 2P';font-size:11px;color:var(--ink);margin-top:22px;line-height:1.9;letter-spacing:.5px;}
+  .about-credit{font-family:'Caveat';font-size:23px;color:var(--ink-soft);margin-top:14px;line-height:1.4;}
+  .about-credit b{color:var(--red);}
+  .about-tag{font-family:'Gaegu';font-size:15px;color:var(--ink-soft);margin-top:16px;}
+
+  /* ---------- tools bar (timer + calculator) ---------- */
+  .tools{display:flex;justify-content:center;gap:10px;margin:0 4px 12px;flex-wrap:wrap;}
+  .toggle{
+    font-family:'Gaegu';font-weight:700;font-size:16px;
+    border:2.5px solid var(--ink);background:var(--paper);color:var(--ink);
+    padding:6px 13px;border-radius:11px 9px 12px 10px;cursor:pointer;
+    box-shadow:2px 2px 0 rgba(38,48,59,.2);transition:transform .08s;
+    display:inline-flex;align-items:center;gap:7px;
+  }
+  .toggle:active{transform:translate(2px,2px);box-shadow:0 0 0;}
+  .toggle.on{background:var(--ink);color:var(--paper);}
+  .toggle .time{font-family:'Special Elite';font-size:17px;letter-spacing:1px;}
+
+  /* ---------- calculator ---------- */
+  .calc{
+    position:fixed;right:16px;bottom:16px;z-index:60;width:210px;
+    background:var(--paper);
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:18px 18px,18px 18px;
+    border:3px solid var(--ink);border-radius:14px 11px 13px 12px;
+    box-shadow:5px 5px 0 rgba(38,48,59,.3);padding:10px;
+  }
+  .calc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .calc-head .ttl{font-family:'Caveat';font-size:19px;color:var(--red);}
+  .calc-head .x{cursor:pointer;font-family:'Special Elite';font-size:16px;border:2px solid var(--ink);border-radius:7px;width:24px;height:24px;line-height:20px;text-align:center;background:var(--paper);}
+  .calc-disp{
+    background:rgba(255,255,255,.55);border:2px solid var(--ink);border-radius:8px;
+    font-family:'Special Elite';font-size:21px;text-align:right;padding:6px 9px;
+    margin-bottom:8px;min-height:38px;color:var(--ink);
+    white-space:nowrap;overflow-x:auto;
+  }
+  .calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .ck{
+    font-family:'Special Elite';font-size:19px;border:2.5px solid var(--ink);
+    background:var(--paper);color:var(--ink);border-radius:9px 7px 10px 8px;
+    padding:9px 0;cursor:pointer;box-shadow:2px 2px 0 rgba(38,48,59,.2);transition:transform .07s;
+  }
+  .ck:active{transform:translate(2px,2px);box-shadow:0 0 0;}
+  .ck.op{background:var(--red);color:var(--paper);}
+  .ck.eq{background:var(--ink);color:var(--paper);}
+  .ck.wide{grid-column:span 2;}
+  .calc-note{font-family:'Gaegu';font-size:12px;color:var(--ink-soft);text-align:center;margin-top:7px;line-height:1.3;}
+
+  /* ---------- whiteboard ---------- */
+  .whiteboard{
+    position:fixed;left:16px;bottom:16px;z-index:60;width:260px;
+    background:var(--paper);
+    border:3px solid var(--ink);border-radius:14px 11px 13px 12px;
+    box-shadow:5px 5px 0 rgba(38,48,59,.3);padding:10px;
+  }
+  .whiteboard canvas{
+    display:block;width:100%;height:auto;background:#fff;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:20px 20px,20px 20px;
+    border:2px solid var(--ink);border-radius:8px;
+    touch-action:none;cursor:crosshair;
+  }
+  .wb-tools{display:flex;justify-content:center;gap:8px;margin-top:8px;}
+  .wb-tools .btn{font-size:14px;padding:6px 14px;}
+
+  /* sarcastic win note */
+  .game-msg .joke{display:block;margin-top:7px;font-family:'Caveat';font-size:19px;color:var(--ink-soft);font-weight:400;}
+  .connect-rounds{font-family:'Special Elite';font-size:24px;text-align:center;margin:6px 0 4px;}
+  .connect-rounds b{color:var(--red);}
+  .connect-quip{font-family:'Caveat';font-size:21px;color:var(--ink-soft);text-align:center;line-height:1.4;}
+
+  /* ---------- party / match-3 ---------- */
+  .dcard.party{border-color:var(--gold);background:rgba(199,154,58,.1);}
+  .dcard.party h3{color:#9c7723;}
+  .m3-bar{display:flex;justify-content:space-between;align-items:center;margin:4px 2px 8px;}
+  .m3-timer{font-family:'Special Elite';font-size:26px;color:var(--ink);letter-spacing:1px;}
+  .m3-timer.low{color:var(--red);}
+  .m3-grid{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:7px;
+    width:min(280px,78vw);margin:0 auto;
+  }
+  .m3-cell{
+    aspect-ratio:1/1;border:2.5px solid var(--ink);border-radius:9px 7px 10px 8px;
+    font-family:'Special Elite';font-size:24px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;transition:transform .07s, box-shadow .1s;box-shadow:2px 2px 0 rgba(38,48,59,.2);
+    color:var(--paper);user-select:none;
+  }
+  .m3-cell.empty{border-style:dashed;background:transparent;box-shadow:none;cursor:default;border-color:var(--grid-strong);}
+  .m3-cell.sel{transform:scale(1.06) rotate(-2deg);box-shadow:0 0 0 3px var(--gold);}
+  .m3-note{font-family:'Gaegu';font-size:13px;color:var(--ink-soft);text-align:center;margin:10px 4px 0;line-height:1.4;}
+  .m3-done{font-family:'Caveat';font-size:24px;color:var(--green);text-align:center;margin-top:8px;}
+  .target-num.hidden-t{color:var(--ink-soft);}
+  .target-num.hidden-t::after{border-color:var(--ink-soft);}
+
+  /* mini-game shared + specific */
+  .mini-holder{margin:4px 0;}
+  .lock-eq{font-family:'Special Elite';font-size:22px;text-align:center;margin:6px 0 12px;color:var(--ink);}
+  .lock-eq .goal{color:var(--red);}
+  .lock-eq .cur{color:var(--green);}
+  .lock-dials{display:flex;justify-content:center;gap:16px;}
+  .dial{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .dial .dv{font-family:'Special Elite';font-size:30px;width:50px;height:50px;display:flex;align-items:center;justify-content:center;border:2.5px solid var(--ink);border-radius:10px;background:#fff;}
+  .guess-cur{font-family:'Special Elite';font-size:20px;text-align:center;color:var(--ink-soft);margin-bottom:6px;}
+  .guess-ctl{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:10px;}
+  .guess-val{font-family:'Special Elite';font-size:40px;color:var(--red);min-width:64px;text-align:center;}
+  .guess-go{display:block;margin:0 auto;}
+  .guess-fb{font-family:'Caveat';font-size:22px;text-align:center;margin-top:8px;color:var(--ink);min-height:26px;}
+  .tilt-scale{display:flex;justify-content:space-around;align-items:flex-start;gap:10px;margin:6px 0 12px;}
+  .tilt-pan{flex:1;border:2.5px solid var(--ink);border-radius:10px;padding:8px;min-height:64px;background:rgba(255,255,255,.35);}
+  .tilt-pan .lab{font-family:'Caveat';font-size:16px;color:var(--ink-soft);text-align:center;display:block;margin-bottom:4px;}
+  .tilt-tiles{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
+  .tilt-tile{font-family:'Special Elite';font-size:18px;border:2px solid var(--ink);border-radius:8px;padding:5px 9px;background:var(--gold);color:var(--paper);cursor:pointer;}
+  .tilt-tile.fixed{background:var(--ink);cursor:default;}
+  .tilt-tray{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:4px;}
+  .tilt-sum{font-family:'Special Elite';font-size:16px;text-align:center;}
+  .tilt-bal{font-family:'Caveat';font-size:20px;text-align:center;margin-top:6px;color:var(--ink-soft);}
+
+  /* ---------- session options (menu) ---------- */
+  .session-opts{display:flex;justify-content:center;gap:10px;margin:0 0 16px;flex-wrap:wrap;}
+  .toggle.disp{cursor:default;}
+
+  /* ---------- how to play ---------- */
+  #howto{max-width:560px;}
+  .guide-ex{display:block;margin:14px auto;max-width:280px;}
+  .guide-ex svg{width:100%;height:auto;display:block;}
+  .guide-cap{font-family:'Caveat';font-size:18px;color:var(--red);text-align:center;margin-top:-4px;}
+  .guide-h{font-family:'Special Elite';font-size:18px;letter-spacing:1px;color:var(--ink);margin:20px 0 5px;display:flex;align-items:center;gap:9px;}
+  .guide-h .num{
+    font-family:'Special Elite';font-size:15px;background:var(--red);color:var(--paper);
+    width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
+  }
+  .guide p{font-family:'Gaegu';font-size:16px;color:var(--ink-soft);line-height:1.55;margin-bottom:3px;}
+  .guide p b{color:var(--ink);}
+  .guide .tag{font-family:'Caveat';font-size:20px;color:var(--red);}
+  .brand{display:flex;justify-content:center;margin:0 0 2px;}
+  .broach-mark{width:min(240px,62vw);height:auto;display:block;}
+</style>
+</head>
+<body>
+<div id="tip"></div>
+
+<!-- ========== MENU ========== -->
+<div id="menu" class="screen">
+  <header>
+    <div class="brand"><svg viewBox="0 0 204 184" xmlns="http://www.w3.org/2000/svg" class="broach-mark">
+  <defs>
+    <filter id="markwob" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="6" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6"/>
+    </filter>
+  </defs>
+  <!-- connector B -> H, behind the nodes, like a puzzle link -->
+  <g filter="url(#markwob)">
+    <line x1="46" y1="52" x2="128" y2="130" stroke="#b5402f" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <!-- black letters -->
+  <g font-family="'Special Elite',monospace" fill="#26303b" text-anchor="middle">
+    <text x="104" y="70" font-size="52">R</text>
+    <text x="150" y="70" font-size="52">O</text>
+    <text x="34"  y="150" font-size="52">A</text>
+    <text x="74"  y="150" font-size="52">C</text>
+    <text x="172" y="150" font-size="52">.</text>
+  </g>
+  <!-- B node -->
+  <g filter="url(#markwob)">
+    <circle cx="46" cy="52" r="36" fill="#b5402f" stroke="#26303b" stroke-width="3"/>
+  </g>
+  <text x="46" y="52" font-family="'Special Elite',monospace" font-size="46" fill="#fff" text-anchor="middle" dominant-baseline="central">B</text>
+  <!-- H node -->
+  <g filter="url(#markwob)">
+    <circle cx="128" cy="130" r="36" fill="#b5402f" stroke="#26303b" stroke-width="3"/>
+  </g>
+  <text x="128" y="130" font-family="'Special Elite',monospace" font-size="46" fill="#fff" text-anchor="middle" dominant-baseline="central">H</text>
+</svg></div>
+    <div class="subtitle">use every number · land on the target</div>
+  </header>
+
+  <div class="menu-intro"><b>New game</b> — pick your trouble.</div>
+
+  <div class="session-opts">
+    <button class="toggle" id="optTimer">⏱ timer: off</button>
+    <button class="toggle" id="optCalc">🧮 calculator: off</button>
+    <button class="toggle" id="optBoard">🖊 whiteboard: off</button>
+  </div>
+
+  <div class="dcards">
+    <div class="dcard" data-mode="daily" data-tip="One puzzle, the same for everyone, refreshed each day. Six steps, target ≤ 50.">
+      <h3>DAILY CHALLENGE <span class="cap">one a day</span></h3>
+    </div>
+
+    <div class="dsection">free puzzle</div>
+
+    <div class="dcard" data-mode="easy" data-tip="One board, three steps, small numbers (target ≤ 10). The gentle way in.">
+      <h3>EASY <span class="cap">3 steps · ≤ 10</span></h3>
+    </div>
+
+    <div class="dcard" data-mode="normal" data-tip="One board, six steps, target ≤ 50. More rope to hang yourself with.">
+      <h3>NORMAL <span class="cap">6 steps · ≤ 50</span></h3>
+    </div>
+
+    <div class="dcard" data-mode="hard" data-tip="Two linked boards: solve A, its result drops into the 🔗 node of B, then solve B too. Target ≤ 100.">
+      <h3>HARD <span class="cap">linked · ≤ 100</span></h3>
+    </div>
+
+    <div class="dcard imp" data-mode="impossible" data-tip="Two linked boards where every number is sealed inside its own puzzle. Crack each to reveal it, then solve both boards.">
+      <h3>IMPOSSIBLE <span class="cap">sealed · ≤ 100</span></h3>
+    </div>
+
+    <div class="dcard" data-mode="pro" data-tip="You pick the target (two digits or more) and the number of steps (three or more). The game deals a solvable set of numbers; the route is yours to find.">
+      <h3>PRO <span class="cap">your call</span></h3>
+    </div>
+
+    <div class="dsection">other modes</div>
+
+    <div class="dcard party" data-mode="party" data-tip="Every number is its own mini-game on a 1-minute clock — match-3, dice, lockpick, sumguess, balance — picked at random. Crack all four and the target appears.">
+      <h3>PARTY MODE <span class="cap">1:00 / number</span></h3>
+    </div>
+
+    <div class="dcard" data-mode="zen" data-tip="No timer, no win screen. Solve one and the next quietly appears. For when you just want to think.">
+      <h3>ZEN MODE <span class="cap">endless</span></h3>
+    </div>
+
+    <div class="dcard" data-mode="connect" data-tip="A 10-minute run. Solve a puzzle and its target carries into the next one as a node, with a fresh target — chain as many rounds as you can before the clock runs out.">
+      <h3>CONNECTING MODE <span class="cap">10:00 · chain</span></h3>
+    </div>
+  </div>
+
+  <div class="menu-foot">
+    <button class="btn" id="toHowto">how to play</button>
+    <button class="btn" id="toAbout">about</button>
+  </div>
+</div>
+
+
+<!-- ========== ABOUT ========== -->
+<div id="about" class="screen hidden">
+  <header>
+    <h1>BROACH</h1>
+    <div class="subtitle">a Torin Farm Games joint</div>
+  </header>
+
+  <div class="logo-frame"><svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+<rect x="0" y="0" fill="#cfe1e0"/>
+<rect x="0" y="0" width="256" height="184" fill="#cfe1e0"/><rect x="0" y="0" width="256" height="56" fill="#bcd3d6"/><rect x="40" y="24" width="8" height="8" fill="#e0b84a"/><rect x="48" y="24" width="8" height="8" fill="#e0b84a"/><rect x="56" y="24" width="8" height="8" fill="#e0b84a"/><rect x="32" y="32" width="8" height="8" fill="#e0b84a"/><rect x="40" y="32" width="8" height="8" fill="#f0d27a"/><rect x="48" y="32" width="8" height="8" fill="#f0d27a"/><rect x="56" y="32" width="8" height="8" fill="#f0d27a"/><rect x="64" y="32" width="8" height="8" fill="#e0b84a"/><rect x="24" y="40" width="8" height="8" fill="#e0b84a"/><rect x="32" y="40" width="8" height="8" fill="#f0d27a"/><rect x="40" y="40" width="8" height="8" fill="#f0d27a"/><rect x="48" y="40" width="8" height="8" fill="#f0d27a"/><rect x="56" y="40" width="8" height="8" fill="#f0d27a"/><rect x="64" y="40" width="8" height="8" fill="#f0d27a"/><rect x="72" y="40" width="8" height="8" fill="#e0b84a"/><rect x="24" y="48" width="8" height="8" fill="#e0b84a"/><rect x="32" y="48" width="8" height="8" fill="#f0d27a"/><rect x="40" y="48" width="8" height="8" fill="#f0d27a"/><rect x="48" y="48" width="8" height="8" fill="#f0d27a"/><rect x="56" y="48" width="8" height="8" fill="#f0d27a"/><rect x="64" y="48" width="8" height="8" fill="#f0d27a"/><rect x="72" y="48" width="8" height="8" fill="#e0b84a"/><rect x="24" y="56" width="8" height="8" fill="#e0b84a"/><rect x="32" y="56" width="8" height="8" fill="#f0d27a"/><rect x="40" y="56" width="8" height="8" fill="#f0d27a"/><rect x="48" y="56" width="8" height="8" fill="#f0d27a"/><rect x="56" y="56" width="8" height="8" fill="#f0d27a"/><rect x="64" y="56" width="8" height="8" fill="#f0d27a"/><rect x="72" y="56" width="8" height="8" fill="#e0b84a"/><rect x="32" y="64" width="8" height="8" fill="#e0b84a"/><rect x="40" y="64" width="8" height="8" fill="#f0d27a"/><rect x="48" y="64" width="8" height="8" fill="#f0d27a"/><rect x="56" y="64" width="8" height="8" fill="#f0d27a"/><rect x="64" y="64" width="8" height="8" fill="#e0b84a"/><rect x="40" y="72" width="8" height="8" fill="#e0b84a"/><rect x="48" y="72" width="8" height="8" fill="#e0b84a"/><rect x="56" y="72" width="8" height="8" fill="#e0b84a"/><rect x="96" y="32" width="32" height="8" fill="#f7f1e3"/><rect x="104" y="24" width="16" height="8" fill="#f7f1e3"/><rect x="184" y="56" width="24" height="8" fill="#f7f1e3"/><rect x="192" y="48" width="16" height="8" fill="#f7f1e3"/><rect x="144" y="72" width="24" height="8" fill="#f7f1e3"/><rect x="160" y="32" width="8" height="8" fill="#26303b"/><rect x="168" y="40" width="8" height="8" fill="#26303b"/><rect x="176" y="32" width="8" height="8" fill="#26303b"/><rect x="192" y="24" width="8" height="8" fill="#26303b"/><rect x="200" y="32" width="8" height="8" fill="#26303b"/><rect x="208" y="24" width="8" height="8" fill="#26303b"/><rect x="0" y="152" width="8" height="104" fill="#7fa86a"/><rect x="8" y="160" width="8" height="96" fill="#7fa86a"/><rect x="16" y="160" width="8" height="96" fill="#7fa86a"/><rect x="24" y="160" width="8" height="96" fill="#7fa86a"/><rect x="32" y="168" width="8" height="88" fill="#7fa86a"/><rect x="40" y="168" width="8" height="88" fill="#7fa86a"/><rect x="48" y="160" width="8" height="96" fill="#7fa86a"/><rect x="56" y="160" width="8" height="96" fill="#7fa86a"/><rect x="64" y="160" width="8" height="96" fill="#7fa86a"/><rect x="72" y="152" width="8" height="104" fill="#7fa86a"/><rect x="80" y="152" width="8" height="104" fill="#7fa86a"/><rect x="88" y="144" width="8" height="112" fill="#7fa86a"/><rect x="96" y="144" width="8" height="112" fill="#7fa86a"/><rect x="104" y="144" width="8" height="112" fill="#7fa86a"/><rect x="112" y="136" width="8" height="120" fill="#7fa86a"/><rect x="120" y="136" width="8" height="120" fill="#7fa86a"/><rect x="128" y="144" width="8" height="112" fill="#7fa86a"/><rect x="136" y="144" width="8" height="112" fill="#7fa86a"/><rect x="144" y="152" width="8" height="104" fill="#7fa86a"/><rect x="152" y="152" width="8" height="104" fill="#7fa86a"/><rect x="160" y="160" width="8" height="96" fill="#7fa86a"/><rect x="168" y="160" width="8" height="96" fill="#7fa86a"/><rect x="176" y="160" width="8" height="96" fill="#7fa86a"/><rect x="184" y="168" width="8" height="88" fill="#7fa86a"/><rect x="192" y="168" width="8" height="88" fill="#7fa86a"/><rect x="200" y="160" width="8" height="96" fill="#7fa86a"/><rect x="208" y="160" width="8" height="96" fill="#7fa86a"/><rect x="216" y="160" width="8" height="96" fill="#7fa86a"/><rect x="224" y="152" width="8" height="104" fill="#7fa86a"/><rect x="232" y="152" width="8" height="104" fill="#7fa86a"/><rect x="240" y="144" width="8" height="112" fill="#7fa86a"/><rect x="248" y="144" width="8" height="112" fill="#7fa86a"/><rect x="0" y="192" width="8" height="64" fill="#4f7d4f"/><rect x="8" y="192" width="8" height="64" fill="#4f7d4f"/><rect x="16" y="192" width="8" height="64" fill="#4f7d4f"/><rect x="24" y="192" width="8" height="64" fill="#4f7d4f"/><rect x="32" y="192" width="8" height="64" fill="#4f7d4f"/><rect x="40" y="184" width="8" height="72" fill="#4f7d4f"/><rect x="48" y="184" width="8" height="72" fill="#4f7d4f"/><rect x="56" y="176" width="8" height="80" fill="#4f7d4f"/><rect x="64" y="176" width="8" height="80" fill="#4f7d4f"/><rect x="72" y="176" width="8" height="80" fill="#4f7d4f"/><rect x="80" y="176" width="8" height="80" fill="#4f7d4f"/><rect x="88" y="176" width="8" height="80" fill="#4f7d4f"/><rect x="96" y="184" width="8" height="72" fill="#4f7d4f"/><rect x="104" y="184" width="8" height="72" fill="#4f7d4f"/><rect x="112" y="192" width="8" height="64" fill="#4f7d4f"/><rect x="120" y="192" width="8" height="64" fill="#4f7d4f"/><rect x="128" y="192" width="8" height="64" fill="#4f7d4f"/><rect x="136" y="192" width="8" height="64" fill="#4f7d4f"/><rect x="144" y="192" width="8" height="64" fill="#4f7d4f"/><rect x="152" y="192" width="8" height="64" fill="#4f7d4f"/><rect x="160" y="184" width="8" height="72" fill="#4f7d4f"/><rect x="168" y="184" width="8" height="72" fill="#4f7d4f"/><rect x="176" y="176" width="8" height="80" fill="#4f7d4f"/><rect x="184" y="176" width="8" height="80" fill="#4f7d4f"/><rect x="192" y="176" width="8" height="80" fill="#4f7d4f"/><rect x="200" y="176" width="8" height="80" fill="#4f7d4f"/><rect x="208" y="176" width="8" height="80" fill="#4f7d4f"/><rect x="216" y="184" width="8" height="72" fill="#4f7d4f"/><rect x="224" y="184" width="8" height="72" fill="#4f7d4f"/><rect x="232" y="192" width="8" height="64" fill="#4f7d4f"/><rect x="240" y="192" width="8" height="64" fill="#4f7d4f"/><rect x="248" y="192" width="8" height="64" fill="#4f7d4f"/><rect x="16" y="232" width="8" height="8" fill="#c79a3a"/><rect x="24" y="216" width="8" height="8" fill="#c79a3a"/><rect x="32" y="232" width="8" height="8" fill="#c79a3a"/><rect x="40" y="216" width="8" height="8" fill="#c79a3a"/><rect x="48" y="232" width="8" height="8" fill="#c79a3a"/><rect x="56" y="216" width="8" height="8" fill="#c79a3a"/><rect x="64" y="232" width="8" height="8" fill="#c79a3a"/><rect x="72" y="216" width="8" height="8" fill="#c79a3a"/><rect x="80" y="232" width="8" height="8" fill="#c79a3a"/><rect x="88" y="216" width="8" height="8" fill="#c79a3a"/><rect x="96" y="232" width="8" height="8" fill="#c79a3a"/><rect x="104" y="216" width="8" height="8" fill="#c79a3a"/><rect x="112" y="232" width="8" height="8" fill="#c79a3a"/><rect x="120" y="216" width="8" height="8" fill="#c79a3a"/><rect x="128" y="232" width="8" height="8" fill="#c79a3a"/><rect x="136" y="216" width="8" height="8" fill="#c79a3a"/><rect x="144" y="232" width="8" height="8" fill="#c79a3a"/><rect x="152" y="216" width="8" height="8" fill="#c79a3a"/><rect x="160" y="232" width="8" height="8" fill="#c79a3a"/><rect x="168" y="216" width="8" height="8" fill="#c79a3a"/><rect x="176" y="232" width="8" height="8" fill="#c79a3a"/><rect x="184" y="216" width="8" height="8" fill="#c79a3a"/><rect x="192" y="232" width="8" height="8" fill="#c79a3a"/><rect x="200" y="216" width="8" height="8" fill="#c79a3a"/><rect x="208" y="232" width="8" height="8" fill="#c79a3a"/><rect x="216" y="216" width="8" height="8" fill="#c79a3a"/><rect x="224" y="232" width="8" height="8" fill="#c79a3a"/><rect x="232" y="216" width="8" height="8" fill="#c79a3a"/><rect x="32" y="120" width="64" height="72" fill="#b5402f"/><rect x="80" y="120" width="16" height="72" fill="#8f3324"/><rect x="56" y="88" width="16" height="8" fill="#5e2a22"/><rect x="48" y="96" width="32" height="8" fill="#5e2a22"/><rect x="40" y="104" width="48" height="8" fill="#5e2a22"/><rect x="32" y="112" width="64" height="8" fill="#5e2a22"/><rect x="32" y="120" width="64" height="8" fill="#f4ecd8"/><rect x="56" y="128" width="16" height="16" fill="#f4ecd8"/><rect x="56" y="136" width="8" height="8" fill="#3a241c"/><rect x="48" y="144" width="32" height="48" fill="#3a241c"/><rect x="48" y="144" width="32" height="8" fill="#f4ecd8"/><rect x="48" y="144" width="8" height="48" fill="#f4ecd8"/><rect x="72" y="144" width="8" height="48" fill="#f4ecd8"/><rect x="64" y="144" width="8" height="48" fill="#f4ecd8"/><rect x="56" y="168" width="8" height="8" fill="#f4ecd8"/><rect x="64" y="168" width="8" height="8" fill="#f4ecd8"/><rect x="96" y="104" width="24" height="88" fill="#e2d7bb"/><rect x="112" y="104" width="8" height="88" fill="#c7bc9c"/><rect x="96" y="96" width="24" height="8" fill="#8a8f93"/><rect x="104" y="88" width="8" height="8" fill="#8a8f93"/><rect x="96" y="128" width="24" height="8" fill="#c7bc9c"/><rect x="96" y="160" width="24" height="8" fill="#c7bc9c"/><rect x="128" y="168" width="8" height="24" fill="#6b4a2f"/><rect x="144" y="168" width="8" height="24" fill="#6b4a2f"/><rect x="160" y="168" width="8" height="24" fill="#6b4a2f"/><rect x="176" y="168" width="8" height="24" fill="#6b4a2f"/><rect x="128" y="176" width="56" height="8" fill="#6b4a2f"/><rect x="192" y="120" width="40" height="32" fill="#3f7d4f"/><rect x="200" y="112" width="24" height="8" fill="#3f7d4f"/><rect x="192" y="120" width="16" height="16" fill="#5b9460"/><rect x="216" y="136" width="16" height="16" fill="#5b9460"/><rect x="208" y="152" width="8" height="32" fill="#6b4a2f"/><rect x="0" y="0" width="8" height="8" fill="#26303b"/><rect x="0" y="248" width="8" height="8" fill="#26303b"/><rect x="8" y="0" width="8" height="8" fill="#26303b"/><rect x="8" y="248" width="8" height="8" fill="#26303b"/><rect x="16" y="0" width="8" height="8" fill="#26303b"/><rect x="16" y="248" width="8" height="8" fill="#26303b"/><rect x="24" y="0" width="8" height="8" fill="#26303b"/><rect x="24" y="248" width="8" height="8" fill="#26303b"/><rect x="32" y="0" width="8" height="8" fill="#26303b"/><rect x="32" y="248" width="8" height="8" fill="#26303b"/><rect x="40" y="0" width="8" height="8" fill="#26303b"/><rect x="40" y="248" width="8" height="8" fill="#26303b"/><rect x="48" y="0" width="8" height="8" fill="#26303b"/><rect x="48" y="248" width="8" height="8" fill="#26303b"/><rect x="56" y="0" width="8" height="8" fill="#26303b"/><rect x="56" y="248" width="8" height="8" fill="#26303b"/><rect x="64" y="0" width="8" height="8" fill="#26303b"/><rect x="64" y="248" width="8" height="8" fill="#26303b"/><rect x="72" y="0" width="8" height="8" fill="#26303b"/><rect x="72" y="248" width="8" height="8" fill="#26303b"/><rect x="80" y="0" width="8" height="8" fill="#26303b"/><rect x="80" y="248" width="8" height="8" fill="#26303b"/><rect x="88" y="0" width="8" height="8" fill="#26303b"/><rect x="88" y="248" width="8" height="8" fill="#26303b"/><rect x="96" y="0" width="8" height="8" fill="#26303b"/><rect x="96" y="248" width="8" height="8" fill="#26303b"/><rect x="104" y="0" width="8" height="8" fill="#26303b"/><rect x="104" y="248" width="8" height="8" fill="#26303b"/><rect x="112" y="0" width="8" height="8" fill="#26303b"/><rect x="112" y="248" width="8" height="8" fill="#26303b"/><rect x="120" y="0" width="8" height="8" fill="#26303b"/><rect x="120" y="248" width="8" height="8" fill="#26303b"/><rect x="128" y="0" width="8" height="8" fill="#26303b"/><rect x="128" y="248" width="8" height="8" fill="#26303b"/><rect x="136" y="0" width="8" height="8" fill="#26303b"/><rect x="136" y="248" width="8" height="8" fill="#26303b"/><rect x="144" y="0" width="8" height="8" fill="#26303b"/><rect x="144" y="248" width="8" height="8" fill="#26303b"/><rect x="152" y="0" width="8" height="8" fill="#26303b"/><rect x="152" y="248" width="8" height="8" fill="#26303b"/><rect x="160" y="0" width="8" height="8" fill="#26303b"/><rect x="160" y="248" width="8" height="8" fill="#26303b"/><rect x="168" y="0" width="8" height="8" fill="#26303b"/><rect x="168" y="248" width="8" height="8" fill="#26303b"/><rect x="176" y="0" width="8" height="8" fill="#26303b"/><rect x="176" y="248" width="8" height="8" fill="#26303b"/><rect x="184" y="0" width="8" height="8" fill="#26303b"/><rect x="184" y="248" width="8" height="8" fill="#26303b"/><rect x="192" y="0" width="8" height="8" fill="#26303b"/><rect x="192" y="248" width="8" height="8" fill="#26303b"/><rect x="200" y="0" width="8" height="8" fill="#26303b"/><rect x="200" y="248" width="8" height="8" fill="#26303b"/><rect x="208" y="0" width="8" height="8" fill="#26303b"/><rect x="208" y="248" width="8" height="8" fill="#26303b"/><rect x="216" y="0" width="8" height="8" fill="#26303b"/><rect x="216" y="248" width="8" height="8" fill="#26303b"/><rect x="224" y="0" width="8" height="8" fill="#26303b"/><rect x="224" y="248" width="8" height="8" fill="#26303b"/><rect x="232" y="0" width="8" height="8" fill="#26303b"/><rect x="232" y="248" width="8" height="8" fill="#26303b"/><rect x="240" y="0" width="8" height="8" fill="#26303b"/><rect x="240" y="248" width="8" height="8" fill="#26303b"/><rect x="248" y="0" width="8" height="8" fill="#26303b"/><rect x="248" y="248" width="8" height="8" fill="#26303b"/><rect x="0" y="0" width="8" height="8" fill="#26303b"/><rect x="248" y="0" width="8" height="8" fill="#26303b"/><rect x="0" y="8" width="8" height="8" fill="#26303b"/><rect x="248" y="8" width="8" height="8" fill="#26303b"/><rect x="0" y="16" width="8" height="8" fill="#26303b"/><rect x="248" y="16" width="8" height="8" fill="#26303b"/><rect x="0" y="24" width="8" height="8" fill="#26303b"/><rect x="248" y="24" width="8" height="8" fill="#26303b"/><rect x="0" y="32" width="8" height="8" fill="#26303b"/><rect x="248" y="32" width="8" height="8" fill="#26303b"/><rect x="0" y="40" width="8" height="8" fill="#26303b"/><rect x="248" y="40" width="8" height="8" fill="#26303b"/><rect x="0" y="48" width="8" height="8" fill="#26303b"/><rect x="248" y="48" width="8" height="8" fill="#26303b"/><rect x="0" y="56" width="8" height="8" fill="#26303b"/><rect x="248" y="56" width="8" height="8" fill="#26303b"/><rect x="0" y="64" width="8" height="8" fill="#26303b"/><rect x="248" y="64" width="8" height="8" fill="#26303b"/><rect x="0" y="72" width="8" height="8" fill="#26303b"/><rect x="248" y="72" width="8" height="8" fill="#26303b"/><rect x="0" y="80" width="8" height="8" fill="#26303b"/><rect x="248" y="80" width="8" height="8" fill="#26303b"/><rect x="0" y="88" width="8" height="8" fill="#26303b"/><rect x="248" y="88" width="8" height="8" fill="#26303b"/><rect x="0" y="96" width="8" height="8" fill="#26303b"/><rect x="248" y="96" width="8" height="8" fill="#26303b"/><rect x="0" y="104" width="8" height="8" fill="#26303b"/><rect x="248" y="104" width="8" height="8" fill="#26303b"/><rect x="0" y="112" width="8" height="8" fill="#26303b"/><rect x="248" y="112" width="8" height="8" fill="#26303b"/><rect x="0" y="120" width="8" height="8" fill="#26303b"/><rect x="248" y="120" width="8" height="8" fill="#26303b"/><rect x="0" y="128" width="8" height="8" fill="#26303b"/><rect x="248" y="128" width="8" height="8" fill="#26303b"/><rect x="0" y="136" width="8" height="8" fill="#26303b"/><rect x="248" y="136" width="8" height="8" fill="#26303b"/><rect x="0" y="144" width="8" height="8" fill="#26303b"/><rect x="248" y="144" width="8" height="8" fill="#26303b"/><rect x="0" y="152" width="8" height="8" fill="#26303b"/><rect x="248" y="152" width="8" height="8" fill="#26303b"/><rect x="0" y="160" width="8" height="8" fill="#26303b"/><rect x="248" y="160" width="8" height="8" fill="#26303b"/><rect x="0" y="168" width="8" height="8" fill="#26303b"/><rect x="248" y="168" width="8" height="8" fill="#26303b"/><rect x="0" y="176" width="8" height="8" fill="#26303b"/><rect x="248" y="176" width="8" height="8" fill="#26303b"/><rect x="0" y="184" width="8" height="8" fill="#26303b"/><rect x="248" y="184" width="8" height="8" fill="#26303b"/><rect x="0" y="192" width="8" height="8" fill="#26303b"/><rect x="248" y="192" width="8" height="8" fill="#26303b"/><rect x="0" y="200" width="8" height="8" fill="#26303b"/><rect x="248" y="200" width="8" height="8" fill="#26303b"/><rect x="0" y="208" width="8" height="8" fill="#26303b"/><rect x="248" y="208" width="8" height="8" fill="#26303b"/><rect x="0" y="216" width="8" height="8" fill="#26303b"/><rect x="248" y="216" width="8" height="8" fill="#26303b"/><rect x="0" y="224" width="8" height="8" fill="#26303b"/><rect x="248" y="224" width="8" height="8" fill="#26303b"/><rect x="0" y="232" width="8" height="8" fill="#26303b"/><rect x="248" y="232" width="8" height="8" fill="#26303b"/><rect x="0" y="240" width="8" height="8" fill="#26303b"/><rect x="248" y="240" width="8" height="8" fill="#26303b"/><rect x="0" y="248" width="8" height="8" fill="#26303b"/><rect x="248" y="248" width="8" height="8" fill="#26303b"/>
+
+<rect x="120" y="200" width="128" height="48" fill="#26303b" opacity="0.92"/>
+<text x="243.2" y="220.8" text-anchor="end" font-family="'Press Start 2P',monospace" font-size="12" fill="#f7f1e3">TORIN FARM</text>
+<text x="243.2" y="238.4" text-anchor="end" font-family="'Press Start 2P',monospace" font-size="12" fill="#f0d27a">GAMES</text>
+
+<rect x="2" y="2" width="252" height="252" fill="none" stroke="#26303b" stroke-width="4"/>
+</svg></div>
+
+  <div class="about-copy">&copy; 2026 TORIN&nbsp;FARM&nbsp;GAMES</div>
+  <div class="about-credit">game developed by<br><b>Aza Jabar</b> &amp; <b>Mr. Data</b></div>
+
+  <div class="menu-foot">
+    <button class="btn primary" id="aboutBack">&larr; back</button>
+  </div>
+</div>
+
+
+<!-- ========== HOW TO PLAY ========== -->
+<div id="howto" class="screen hidden">
+  <header>
+    <h1>BROACH</h1>
+    <div class="subtitle">how to play</div>
+  </header>
+
+  <div class="guide">
+    <div class="guide-h"><span class="num">1</span>The idea</div>
+    <p>You're given a handful of <b>numbers</b> and one <b>target</b>. Connect the numbers into a single chain with lines, choosing a + − × or ÷ for each line. Use <b>every</b> number, and make your running total land <b>exactly</b> on the target.</p>
+
+    <div class="guide-h"><span class="num">2</span>The one rule that matters</div>
+    <p>A chain is read strictly <b>left to right, like a pocket calculator</b> — no order of operations, no brackets. So the order you visit the numbers <i>is</i> the puzzle.</p>
+
+    <div class="guide-ex">
+      <svg viewBox="0 0 280 130" xmlns="http://www.w3.org/2000/svg">
+        <line x1="55" y1="45" x2="140" y2="45" stroke="#b5402f" stroke-width="2.4" stroke-linecap="round"/>
+        <line x1="140" y1="45" x2="225" y2="45" stroke="#b5402f" stroke-width="2.4" stroke-linecap="round"/>
+        <circle cx="97" cy="37" r="10" fill="#f4ecd8"/><text x="97" y="42" text-anchor="middle" font-family="'Special Elite'" font-size="16" fill="#b5402f">×</text>
+        <circle cx="182" cy="37" r="10" fill="#f4ecd8"/><text x="182" y="42" text-anchor="middle" font-family="'Special Elite'" font-size="16" fill="#b5402f">−</text>
+        <g><circle cx="55" cy="45" r="20" fill="#b5402f" stroke="#26303b" stroke-width="2.4"/><text x="55" y="53" text-anchor="middle" font-family="'Special Elite'" font-size="22" fill="#f4ecd8">3</text></g>
+        <g><circle cx="140" cy="45" r="20" fill="#26303b" stroke="#26303b" stroke-width="2.4"/><text x="140" y="53" text-anchor="middle" font-family="'Special Elite'" font-size="22" fill="#f4ecd8">7</text></g>
+        <g><circle cx="225" cy="45" r="20" fill="#26303b" stroke="#26303b" stroke-width="2.4"/><text x="225" y="53" text-anchor="middle" font-family="'Special Elite'" font-size="22" fill="#f4ecd8">5</text></g>
+        <text x="140" y="100" text-anchor="middle" font-family="'Special Elite'" font-size="17" fill="#26303b">3 × 7 = 21 − 5 = 16</text>
+        <text x="140" y="120" text-anchor="middle" font-family="'Gaegu'" font-weight="700" font-size="15" fill="#3f7d4f">target 16 &#10003;</text>
+      </svg>
+    </div>
+    <div class="guide-cap">tap 3, pick ×, tap 7, pick −, tap 5 — done.</div>
+
+    <div class="guide-h"><span class="num">3</span>Playing a board</div>
+    <p><b>Tap a number</b> to start your chain (it turns red). <b>Pick an operation</b> from the keys below, then <b>tap the next number</b> to connect it. The little tag on each circle shows your visit order, and the ledger up top keeps a running tally.</p>
+    <p><b>↶ undo</b> peels back one step; <b>reset</b> clears the chain. A <span class="tag">SOLVED</span> stamp drops when you nail it. Use every number but miss the target, and it tells you what you hit so you can re-route.</p>
+
+    <div class="guide-h"><span class="num">4</span>The modes</div>
+    <p><b>Daily</b> — one puzzle, the same for everyone, refreshed each day.</p>
+    <p><b>Easy</b> — one board, three steps, small numbers (target ≤ 10).</p>
+    <p><b>Normal</b> — one board, six steps (target ≤ 50).</p>
+    <p><b>Hard</b> — <b>two linked boards</b>. Solve Puzzle A first; its answer drops into the locked 🔗 node of Puzzle B, which you then solve too (target ≤ 100).</p>
+    <p><b>Impossible</b> — two linked boards where every number is <b>sealed</b>. Tap a “?” to drop <i>inside</i> it — a whole mini-puzzle hides there. Solve it to reveal the number, then solve the board it sits on.</p>
+    <p><b>Pro</b> — you choose the target and how many steps; the game deals a solvable set of numbers.</p>
+    <p><b>Party</b> — every number is a random 1-minute mini-game; crack all four and the target appears.</p>
+    <p><b>Zen</b> — no timer, no end; solve one and the next quietly appears.</p>
+
+    <div class="guide-h"><span class="num">5</span>Tools &amp; tips</div>
+    <p>Before you pick a difficulty you can switch the <b>stopwatch</b> and a <b>scratch calculator</b> on or off — those choices lock in for the run. The calculator follows normal math order, so it's a true scratchpad, not a cheat for the chain.</p>
+    <p class="tag">Tip: division is the fussy one. Look for it early, while the running total is still small and clean.</p>
+
+    <div class="guide-h"><span class="num">6</span>On paper</div>
+    <p>Write the numbers in a ring, draw a line to each one in the order you visit, label every line with its operation, and keep the running tally in the margin. That's the whole game — no app required.</p>
+  </div>
+
+  <div class="menu-foot">
+    <button class="btn primary" id="howtoBack">&larr; back</button>
+  </div>
+</div>
+
+<!-- ========== GAME ========== -->
+<div id="game" class="screen hidden">
+  <div class="game-bar">
+    <div class="mode-name" id="modeName">EASY</div>
+    <button class="btn" id="toMenu">↩ new game</button>
+  </div>
+  <div class="mode-hint" id="modeHint"></div>
+
+  <div class="tools hidden" id="tools">
+    <span class="toggle disp hidden" id="timerDisplay">⏱ <span class="time" id="timerDisp">00:00</span></span>
+    <span class="toggle disp hidden" id="connectTimer">⏳ <span class="time" id="connectDisp">10:00</span></span>
+    <button class="toggle hidden" id="calcToggle">🧮 calculator</button>
+    <button class="toggle hidden" id="boardToggle">🖊 whiteboard</button>
+  </div>
+
+  <div class="boards" id="boards"></div>
+
+  <div class="game-msg" id="gameMsg"></div>
+
+  <div class="controls-main">
+    <button class="btn" id="restart">restart puzzle ↻</button>
+  </div>
+</div>
+
+<!-- ========== SUB-PUZZLE OVERLAY ========== -->
+<div id="overlay" class="overlay hidden">
+  <div class="sub-card" id="subCard"></div>
+</div>
+
+<!-- ========== CALCULATOR ========== -->
+<div id="calc" class="calc hidden">
+  <div class="calc-head">
+    <span class="ttl">scratch calc</span>
+    <span class="x" id="calcClose">×</span>
+  </div>
+  <div class="calc-disp" id="calcDisp">0</div>
+  <div class="calc-grid" id="calcGrid">
+    <button class="ck" data-k="(">(</button>
+    <button class="ck" data-k=")">)</button>
+    <button class="ck" data-k="⌫">⌫</button>
+    <button class="ck" data-k="C">C</button>
+    <button class="ck" data-k="7">7</button>
+    <button class="ck" data-k="8">8</button>
+    <button class="ck" data-k="9">9</button>
+    <button class="ck op" data-k="÷">÷</button>
+    <button class="ck" data-k="4">4</button>
+    <button class="ck" data-k="5">5</button>
+    <button class="ck" data-k="6">6</button>
+    <button class="ck op" data-k="×">×</button>
+    <button class="ck" data-k="1">1</button>
+    <button class="ck" data-k="2">2</button>
+    <button class="ck" data-k="3">3</button>
+    <button class="ck op" data-k="−">−</button>
+    <button class="ck" data-k="0">0</button>
+    <button class="ck" data-k=".">.</button>
+    <button class="ck eq" data-k="=">=</button>
+    <button class="ck op" data-k="+">+</button>
+  </div>
+  <div class="calc-note">full math order — × and ÷ before + and −. use ( ) to group.</div>
+</div>
+
+<!-- ========== WHITEBOARD ========== -->
+<div id="whiteboard" class="whiteboard hidden">
+  <div class="calc-head">
+    <span class="ttl">whiteboard</span>
+    <span class="x" id="wbClose">×</span>
+  </div>
+  <canvas id="wbCanvas" width="240" height="320"></canvas>
+  <div class="wb-tools">
+    <button class="btn wb-clear" id="wbClear">clear</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   BROACH engine
+   ============================================================ */
+const SVGNS='http://www.w3.org/2000/svg';
+function svgel(tag,attrs){const e=document.createElementNS(SVGNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+let _rng=Math.random;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
+function dateSeed(){const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();}
+function rnd(a,b){return Math.floor(_rng()*(b-a+1))+a;}
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=rnd(0,i);[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+function apply(t,op,n){return op==='+'?t+n:op==='−'?t-n:op==='×'?t*n:t/n;}
+
+/* ---- puzzle factory ---- */
+let _uid=0;
+function ringPositions(count){
+  const cx=160,cy=140,R=count<=4?86:count<=5?96:106,pos=[];
+  for(let i=0;i<count;i++){
+    const a=(-Math.PI/2)+(i/count)*Math.PI*2;
+    pos.push({x:cx+Math.cos(a)*R+rnd(-7,7), y:cy+Math.sin(a)*R*0.92+rnd(-7,7)});
+  }
+  return pos;
+}
+function mkPuzzle(nums,target){
+  return {nums:nums.slice(),target,positions:ringPositions(nums.length),
+          sealed:null,subPuzzles:null,linkIndex:-1,linkValue:null,targetHidden:false};
+}
+const OPS=['+','−','×','÷'];
+const INTERMED=999;  // running totals may roam this high; only the final target obeys cap
+
+function generate(count,cap){
+  for(let tries=0;tries<8000;tries++){
+    const base=[];for(let i=0;i<count;i++)base.push(rnd(2,9));
+    let total=base[0],ok=true;
+    for(let i=1;i<count;i++){
+      let picked=null;
+      for(const op of shuffle([...OPS])){const r=apply(total,op,base[i]);if(Number.isInteger(r)&&r>0&&r<=INTERMED){picked=r;break;}}
+      if(picked===null){ok=false;break;}total=picked;
+    }
+    if(ok&&total>=2&&total<=cap){
+      const order=shuffle([...Array(count).keys()]);
+      return mkPuzzle(order.map(i=>base[i]),total);
+    }
+  }
+  return mkPuzzle([3,7,2,5],18);
+}
+
+function generateWithLink(count,cap,fixed){
+  for(let tries=0;tries<16000;tries++){
+    const base=[];for(let i=0;i<count;i++)base.push(rnd(2,9));
+    const k=rnd(0,count-1);base[k]=fixed;
+    let total=base[0],ok=true;
+    for(let i=1;i<count;i++){
+      let picked=null;
+      for(const op of shuffle([...OPS])){const r=apply(total,op,base[i]);if(Number.isInteger(r)&&r>0&&r<=INTERMED){picked=r;break;}}
+      if(picked===null){ok=false;break;}total=picked;
+    }
+    if(ok&&total>=2&&total<=cap){
+      const p=mkPuzzle(base,total);p.linkIndex=k;return p;
+    }
+  }
+  const p=mkPuzzle([fixed,3,2],fixed+5);p.linkIndex=0;return p;
+}
+
+/* Pro mode: player gives the target, we deal nodes that reach it (built backwards) */
+function genForTarget(T,count){
+  for(let tries=0;tries<8000;tries++){
+    let total=T;const operands=[];let ok=true;
+    for(let i=0;i<count-1;i++){
+      let done=false;
+      for(const op of shuffle([...OPS])){
+        const n=rnd(2,9);let prev;
+        if(op==='+')prev=total-n;
+        else if(op==='−')prev=total+n;
+        else if(op==='×'){if(total%n!==0)continue;prev=total/n;}
+        else prev=total*n;
+        if(prev>=1&&prev<=INTERMED){operands.push(n);total=prev;done=true;break;}
+      }
+      if(!done){ok=false;break;}
+    }
+    if(ok&&total>=1&&total<=99){
+      return mkPuzzle(shuffle([total,...operands]),T);
+    }
+  }
+  return mkPuzzle([Math.max(2,Math.min(T,9)),2,3],T);
+}
+
+/* mini puzzle whose left-to-right result == target (target is small, 2-9) */
+function genToTarget(target){
+  for(let t=0;t<4000;t++){
+    const nums=[rnd(1,9),rnd(1,9),rnd(1,9)];
+    let total=nums[0],ok=true;
+    for(let i=1;i<3;i++){
+      let picked=null;
+      for(const op of shuffle([...OPS])){const r=apply(total,op,nums[i]);if(Number.isInteger(r)&&r>0&&r<100){picked=r;break;}}
+      if(picked===null){ok=false;break;}total=picked;
+    }
+    if(ok&&total===target)return mkPuzzle(nums,target);
+  }
+  for(let t=0;t<4000;t++){
+    const a=rnd(1,9),b=rnd(1,9);
+    for(const op of OPS){if(apply(a,op,b)===target)return mkPuzzle([a,b],target);}
+  }
+  return mkPuzzle([target,1],target);
+}
+
+function sealPuzzle(p){
+  p.sealed=p.nums.map((_,i)=>i!==p.linkIndex);
+  p.subPuzzles=p.nums.map((v,i)=>i===p.linkIndex?null:genToTarget(v));
+  return p;
+}
+
+/* ============================================================
+   Board — manages its own DOM + state
+   ============================================================ */
+/* finds a completion from the board's current chain → returns the ordered
+   list of remaining moves [{index, op}], or null if none exists.
+   op is the operation to apply BEFORE that node (null for the very first node). */
+function solveCompletion(board){
+  const P=board.puzzle, n=P.nums.length;
+  const used=new Array(n).fill(false);
+  board.chain.forEach(i=>used[i]=true);
+  let startTotal=null;
+  if(board.chain.length>0){
+    startTotal=board.val(board.chain[0]);
+    for(let i=1;i<board.chain.length;i++)startTotal=apply(startTotal,board.ops[i-1],board.val(board.chain[i]));
+  }
+  const remaining=[];for(let i=0;i<n;i++)if(!used[i])remaining.push(i);
+  const V=i=>board.val(i), TARGET=P.target, path=[];
+  let visits=0;const MAX=400000;
+  function dfs(total,rem){
+    if(visits++>MAX)return false;
+    if(rem.length===0)return total===TARGET;
+    for(let j=0;j<rem.length;j++){
+      const idx=rem[j],nv=V(idx);
+      if(nv===null||nv===undefined)continue;          // locked link, skip
+      const rest=rem.slice(0,j).concat(rem.slice(j+1));
+      if(total===null){
+        path.push({index:idx,op:null});
+        if(dfs(nv,rest))return true;
+        path.pop();
+      }else{
+        for(const op of OPS){
+          const t=apply(total,op,nv);
+          if(!Number.isInteger(t)||t<=0||t>1000000)continue;
+          path.push({index:idx,op});
+          if(dfs(t,rest))return true;
+          path.pop();
+        }
+      }
+    }
+    return false;
+  }
+  return dfs(startTotal,remaining)?path.slice():null;
+}
+
+class Board{
+  constructor(root,puzzle,opts){
+    this.root=root;this.puzzle=puzzle;this.opts=opts||{};
+    this.uid=++_uid;
+    this.chain=[];this.ops=[];this.selOp='+';this.solved=false;
+    this.hintsLeft=this.opts.hints?3:0;this.hintNode=null;
+    this.revealed=puzzle.sealed?puzzle.nums.map(()=>false):null;
+    this.build();this.render();
+  }
+  isSealed(i){return this.puzzle.sealed&&this.puzzle.sealed[i];}
+  isLink(i){return i===this.puzzle.linkIndex;}
+  val(i){return this.isLink(i)?this.puzzle.linkValue:this.puzzle.nums[i];}
+
+  build(){
+    const t=this.opts.title?`<div class="bc-title">${this.opts.title}</div>`:'';
+    this.root.innerHTML=`
+      ${t}
+      <div class="bc-topbar">
+        <div><div class="target-label">target</div><div class="target-num${this.puzzle.targetHidden?' hidden-t':''}">${this.puzzle.targetHidden?'?':this.puzzle.target}</div></div>
+        <div class="bc-steps">steps <b><span class="su">0</span>/<span class="sl">${this.puzzle.nums.length-1}</span></b></div>
+      </div>
+      <div class="ledger"><span class="placeholder">tap a number to begin…</span></div>
+      <div class="svg-wrap">
+        <svg class="board" viewBox="0 0 320 280" preserveAspectRatio="xMidYMid meet">
+          <defs><filter id="wob${this.uid}">
+            <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" result="n"/>
+            <feDisplacementMap in="SourceGraphic" in2="n" scale="2.2"/></filter></defs>
+          <g class="edges"></g><g class="nodes"></g>
+        </svg>
+        <div class="stamp"><span>SOLVED</span></div>
+      </div>
+      <div class="ops">
+        <button class="op sel" data-op="+">+</button>
+        <button class="op" data-op="−">−</button>
+        <button class="op" data-op="×">×</button>
+        <button class="op" data-op="÷">÷</button>
+      </div>
+      <div class="bc-controls">
+        <button class="btn undo">↶ undo</button>
+        <button class="btn reset">reset</button>
+        ${this.opts.hints?'<button class="btn hint" title="reveal the next move"><span class="bulb">💡</span> <span class="hcount">3</span></button>':''}
+      </div>
+      <div class="bc-msg"></div>`;
+    const q=s=>this.root.querySelector(s);
+    this.elEdges=q('.edges');this.elNodes=q('.nodes');this.elLedger=q('.ledger');
+    this.elSu=q('.su');this.elSl=q('.sl');this.elSteps=q('.bc-steps');
+    this.elStamp=q('.stamp');this.elMsg=q('.bc-msg');this.elTarget=q('.target-num');
+    this.filter=`url(#wob${this.uid})`;
+    this.root.querySelector('.ops').addEventListener('click',e=>{
+      const b=e.target.closest('.op');if(!b)return;this.selOp=b.dataset.op;
+      this.root.querySelectorAll('.op').forEach(o=>o.classList.toggle('sel',o===b));
+    });
+    q('.undo').addEventListener('click',()=>this.undo());
+    q('.reset').addEventListener('click',()=>this.reset());
+    const hb=q('.hint');if(hb)hb.addEventListener('click',()=>this.hint());
+  }
+
+  total(){
+    if(this.chain.length===0)return null;
+    let t=this.val(this.chain[0]);
+    for(let i=1;i<this.chain.length;i++)t=apply(t,this.ops[i-1],this.val(this.chain[i]));
+    return t;
+  }
+
+  render(){
+    const P=this.puzzle;
+    // edges
+    this.elEdges.innerHTML='';
+    for(let i=0;i<this.chain.length-1;i++){
+      const a=P.positions[this.chain[i]],b=P.positions[this.chain[i+1]];
+      this.elEdges.appendChild(svgel('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,
+        stroke:'var(--red)','stroke-width':2.4,'stroke-linecap':'round',filter:this.filter}));
+      const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+      this.elEdges.appendChild(svgel('circle',{cx:mx,cy:my-8,r:10,fill:'var(--paper)'}));
+      const lab=svgel('text',{x:mx,y:my-3,'text-anchor':'middle',class:'edge-label'});
+      lab.textContent=this.ops[i];this.elEdges.appendChild(lab);
+    }
+    // nodes
+    this.elNodes.innerHTML='';
+    P.nums.forEach((_,i)=>{
+      const p=P.positions[i],pos=this.chain.indexOf(i),used=pos>=0;
+      const linkLocked=this.isLink(i)&&P.linkValue===null;
+      const sealedShut=this.isSealed(i)&&!this.revealed[i];
+      let disp,cls='node';
+      if(used){cls+=' used';if(pos===0)cls+=' start';disp=this.val(i);}
+      else if(linkLocked){cls+=' locked';disp='?';}
+      else if(sealedShut){cls+=' sealed';disp='?';}
+      else{cls+=' avail';disp=this.val(i);}
+      if(this.opts.carryIndex===i)cls+=' carry';
+      if(this.hintNode===i)cls+=' hinted';
+      const g=svgel('g',{class:cls});
+      const c=svgel('circle',{cx:p.x,cy:p.y,r:22,stroke:'var(--ink)','stroke-width':2.4,filter:this.filter});
+      g.appendChild(c);
+      const tx=svgel('text',{x:p.x,y:p.y+8,'text-anchor':'middle'});tx.textContent=disp;g.appendChild(tx);
+      if(this.opts.carryIndex===i&&!used){
+        const tag=svgel('text',{x:p.x,y:p.y-28,'text-anchor':'middle',class:'order-tag',fill:'#8a6d1f'});
+        tag.textContent='🔗 carried';g.appendChild(tag);
+      }
+      if(used){
+        const tag=svgel('text',{x:p.x+17,y:p.y-15,'text-anchor':'middle',class:'order-tag',fill:'var(--red)'});
+        tag.textContent=pos+1;g.appendChild(tag);
+      }
+      if(sealedShut){
+        const tag=svgel('text',{x:p.x,y:p.y+30,'text-anchor':'middle',class:'order-tag',fill:'var(--ink-soft)'});
+        tag.textContent='open';g.appendChild(tag);
+      }
+      g.style.cursor=linkLocked?'default':'pointer';
+      g.addEventListener('click',()=>this.click(i));
+      this.elNodes.appendChild(g);
+    });
+    this.renderLedger();
+    this.elSu.textContent=Math.max(0,this.chain.length-1);
+    this.elSteps.classList.toggle('over',this.chain.length-1>this.puzzle.nums.length-1);
+  }
+
+  renderLedger(){
+    if(this.chain.length===0){this.elLedger.innerHTML='<span class="placeholder">tap a number to begin…</span>';return;}
+    let t=this.val(this.chain[0]),html=`<span>${this.val(this.chain[0])}</span>`;
+    for(let i=1;i<this.chain.length;i++){
+      t=apply(t,this.ops[i-1],this.val(this.chain[i]));
+      const s=Number.isInteger(t)?t:t.toFixed(2);
+      html+=` ${this.ops[i-1]} ${this.val(this.chain[i])} = <span class="runtotal">${s}</span>`;
+    }
+    this.elLedger.innerHTML=html;
+  }
+
+  click(i){
+    if(this.solved)return;
+    if(this.isLink(i)&&this.puzzle.linkValue===null){this.flash('Solve the other board first to unlock the 🔗 number.','bad');return;}
+    if(this.isSealed(i)&&!this.revealed[i]){this.opts.onOpenSub&&this.opts.onOpenSub(this,i);return;}
+    if(this.chain.includes(i))return;
+    if(this.chain.length>0)this.ops.push(this.selOp);
+    this.chain.push(i);
+    this.hintNode=null;
+    this.render();this.checkWin();
+  }
+
+  checkWin(){
+    this.elMsg.className='bc-msg';this.elMsg.textContent='';
+    if(this.puzzle.targetHidden){this.flash('Crack every number first — then the target appears.','');return;}
+    if(this.chain.length<this.puzzle.nums.length)return;
+    const t=this.total();
+    if(t===this.puzzle.target){
+      this.solved=true;this.elStamp.classList.add('show');
+      this.opts.onSolve&&this.opts.onSolve(this);
+    }else{
+      const s=Number.isInteger(t)?t:t.toFixed(2);
+      this.flash(`All used — you landed on ${s}, not ${this.puzzle.target}. Undo & re-route.`,'bad');
+    }
+  }
+
+  flash(msg,kind){this.elMsg.className='bc-msg '+(kind||'');this.elMsg.textContent=msg;}
+  undo(){if(this.chain.length===0||this.solved)return;this.chain.pop();if(this.ops.length)this.ops.pop();this.hintNode=null;this.render();this.flash('');}
+  reset(){if(this.solved)return;this.chain=[];this.ops=[];this.hintNode=null;this.render();this.flash('');}
+  updateHintBtn(){
+    const c=this.root.querySelector('.hcount');if(c)c.textContent=this.hintsLeft;
+    const b=this.root.querySelector('.hint');if(b){if(this.hintsLeft<=0)b.classList.add('spent');else b.classList.remove('spent');}
+  }
+  hint(){
+    if(this.solved)return;
+    if(this.hintsLeft<=0){this.flash('No hints left this round.','');return;}
+    // locked link still hidden?
+    for(let i=0;i<this.puzzle.nums.length;i++){
+      if(this.isLink(i)&&this.puzzle.linkValue===null&&!this.chain.includes(i)){
+        this.flash('Solve the other board to unlock the 🔗 number first.','');return;
+      }
+    }
+    const path=solveCompletion(this);
+    if(!path||path.length===0){this.flash('No finish from here — undo a step and try another route.','');return;}
+    const step=path[0];
+    this.hintsLeft--;this.updateHintBtn();
+    if(step.op){
+      this.selOp=step.op;
+      this.root.querySelectorAll('.op').forEach(o=>o.classList.toggle('sel',o.dataset.op===step.op));
+    }
+    this.hintNode=step.index;
+    this.render();
+    const v=this.val(step.index);
+    if(step.op===null)this.flash('💡 start with '+v+'.','good');
+    else this.flash('💡 '+step.op+' then tap '+v+'.','good');
+  }
+  reveal(i){if(this.revealed)this.revealed[i]=true;this.render();}
+  setLink(v){this.puzzle.linkValue=v;this.render();}
+  revealTarget(t){
+    this.puzzle.target=t;this.puzzle.targetHidden=false;
+    this.elTarget.textContent=t;this.elTarget.classList.remove('hidden-t');
+  }
+  allRevealed(){return this.revealed&&this.revealed.every(Boolean);}
+}
+
+/* ============================================================
+   Match-3 generator (reverse-built, always collapsible to one tile)
+   ============================================================ */
+function empty4(){return [[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]];}
+function ruleAnchor(cells){
+  const maxr=Math.max(...cells.map(p=>p[0]));
+  const minc=Math.min(...cells.filter(p=>p[0]===maxr).map(p=>p[1]));
+  return [maxr,minc];
+}
+function findTriomino(g,r,c){
+  const empt=(rr,cc)=>rr>=0&&rr<4&&cc>=0&&cc<4&&g[rr][cc]==null;
+  const dirs=[[-1,0],[1,0],[0,-1],[0,1]];
+  const opts=[];
+  for(const [dr,dc] of dirs){
+    const n1=[r+dr,c+dc];
+    if(!empt(n1[0],n1[1]))continue;
+    const adjs=[];
+    for(const [er,ec] of dirs){adjs.push([r+er,c+ec]);adjs.push([n1[0]+er,n1[1]+ec]);}
+    for(const n2 of adjs){
+      if(!empt(n2[0],n2[1]))continue;
+      if((n2[0]===r&&n2[1]===c)||(n2[0]===n1[0]&&n2[1]===n1[1]))continue;
+      const a=ruleAnchor([[r,c],n1,n2]);
+      if(a[0]===r&&a[1]===c)opts.push([n1,n2]);
+    }
+  }
+  return opts.length?opts[rnd(0,opts.length-1)]:null;
+}
+function countTiles(g){let n=0;for(let r=0;r<4;r++)for(let c=0;c<4;c++)if(g[r][c]!=null)n++;return n;}
+function buildM3(F,maxExp){
+  const g=empty4();g[rnd(0,3)][rnd(0,3)]=F;
+  let exp=0,guard=0;
+  while(exp<maxExp&&guard<400){
+    guard++;
+    const cand=[];
+    for(let r=0;r<4;r++)for(let c=0;c<4;c++){const v=g[r][c];if(v!=null&&v%3===0&&v>=3)cand.push([r,c]);}
+    if(!cand.length)break;
+    const [r,c]=cand[rnd(0,cand.length-1)];
+    const tri=findTriomino(g,r,c);
+    if(!tri)continue;
+    const child=g[r][c]/3;
+    g[r][c]=child;g[tri[0][0]][tri[0][1]]=child;g[tri[1][0]][tri[1][1]]=child;
+    exp++;
+  }
+  return exp>=1?{grid:g,value:F}:null;
+}
+function genMatch3(){
+  // prefer richer boards (7+ tiles); fall back to whatever is solvable
+  const Fs=[9,12,18,24,27,36];
+  let best=null;
+  for(let i=0;i<80;i++){
+    const b=buildM3(Fs[rnd(0,Fs.length-1)],rnd(4,6));
+    if(!b)continue;
+    const t=countTiles(b.grid);
+    if(t>=7)return b;
+    if(!best||t>countTiles(best.grid))best=b;
+  }
+  return best||{grid:(()=>{const g=empty4();g[3][0]=3;g[3][1]=3;g[3][2]=3;return g;})(),value:9};
+}
+
+/* ---- Match-3: select exactly 3 touching equal tiles to merge into their sum ---- */
+class Match3Game{
+  constructor(root,cfg,onSolve){
+    this.root=root;this.value=cfg.value;
+    this.initial=cfg.grid.map(r=>r.slice());this.grid=cfg.grid.map(r=>r.slice());
+    this.onSolve=onSolve;this.sel=[];this.done=false;this.build();this.render();
+  }
+  build(){
+    this.root.innerHTML=`<div class="m3-grid"></div><div class="m3-done"></div>`;
+    this.elGrid=this.root.querySelector('.m3-grid');this.elDone=this.root.querySelector('.m3-done');
+  }
+  reset(){this.grid=this.initial.map(r=>r.slice());this.sel=[];this.done=false;this.elDone.textContent='';this.render();}
+  inSel(r,c){return this.sel.some(p=>p[0]===r&&p[1]===c);}
+  adj(r,c){return this.sel.some(p=>Math.abs(p[0]-r)+Math.abs(p[1]-c)===1);}
+  comp(r,c){const v=this.grid[r][c];if(v==null)return[];const seen=new Set([r+','+c]),st=[[r,c]],out=[[r,c]],D=[[-1,0],[1,0],[0,-1],[0,1]];
+    while(st.length){const[a,b]=st.pop();for(const[da,db]of D){const nr=a+da,nc=b+db,k=nr+','+nc;
+      if(nr>=0&&nr<4&&nc>=0&&nc<4&&!seen.has(k)&&this.grid[nr][nc]===v){seen.add(k);st.push([nr,nc]);out.push([nr,nc]);}}}return out;}
+  anyMove(){for(let r=0;r<4;r++)for(let c=0;c<4;c++)if(this.grid[r][c]!=null&&this.comp(r,c).length>=3)return true;return false;}
+  color(v){const m={1:'#8a8f93',2:'#5b9460',3:'#3f7d4f',4:'#4f7d4f',6:'#c79a3a',8:'#9c7723',9:'#b5402f',
+    12:'#9c7723',18:'#8f3324',24:'#5e2a22',27:'#26303b',36:'#3a241c'};return m[v]||'#46505c';}
+  tap(r,c){
+    if(this.done||this.grid[r][c]==null)return;
+    if(this.inSel(r,c)){this.sel=[];this.render();return;}
+    const v=this.grid[r][c];
+    if(this.sel.length>0){
+      const sv=this.grid[this.sel[0][0]][this.sel[0][1]];
+      if(v!==sv||!this.adj(r,c)){this.sel=[[r,c]];this.render();return;}
+    }
+    this.sel.push([r,c]);
+    if(this.sel.length===3)this.merge();
+    this.render();
+  }
+  merge(){
+    const cells=this.sel.slice();const v=this.grid[cells[0][0]][cells[0][1]];
+    const [ar,ac]=ruleAnchor(cells);
+    for(const[gr,gc]of cells)this.grid[gr][gc]=null;
+    this.grid[ar][ac]=v*3;this.sel=[];
+    if(countTiles(this.grid)===1){this.finish();return;}
+    if(!this.anyMove())this.elDone.textContent='no triples left — reset to try again.';
+  }
+  finish(){this.done=true;this.elDone.textContent='one number left — '+this.value+'!';setTimeout(()=>this.onSolve(this.value),700);}
+  render(){
+    this.elGrid.innerHTML='';
+    for(let r=0;r<4;r++)for(let c=0;c<4;c++){
+      const v=this.grid[r][c];const d=document.createElement('div');
+      if(v==null)d.className='m3-cell empty';
+      else{d.className='m3-cell'+(this.inSel(r,c)?' sel':'');d.textContent=v;d.style.background=this.color(v);d.onclick=()=>this.tap(r,c);}
+      this.elGrid.appendChild(d);
+    }
+  }
+  destroy(){}
+}
+
+/* ---- Dice chain: a tiny Broach on three dice (reuses Board) ---- */
+function genDice(){
+  for(let t=0;t<3000;t++){
+    const d=[rnd(1,6),rnd(1,6),rnd(1,6)];
+    let total=d[0],ok=true;
+    for(let i=1;i<3;i++){let p=null;for(const op of shuffle([...OPS])){const r=apply(total,op,d[i]);if(Number.isInteger(r)&&r>0&&r<=99){p=r;break;}}if(p===null){ok=false;break;}total=p;}
+    if(ok&&total>=2&&total<=40)return {puzzle:mkPuzzle(shuffle(d),total),value:total};
+  }
+  return {puzzle:mkPuzzle([2,3,4],9),value:9};
+}
+class DiceGame{
+  constructor(root,cfg,onSolve){this.value=cfg.value;this.board=new Board(root,cfg.puzzle,{onSolve:()=>onSolve(cfg.value)});}
+  reset(){this.board.reset();}
+  destroy(){}
+}
+
+/* ---- Lockpick: set three dials so a fixed equation hits the goal ---- */
+function genLock(){
+  const pool=['+','−','×'];const ops=[pool[rnd(0,2)],pool[rnd(0,2)]];
+  let goal=null;
+  for(let t=0;t<2000;t++){
+    const a=rnd(1,6),b=rnd(1,6),c=rnd(1,6);
+    const v=apply(apply(a,ops[0],b),ops[1],c);
+    if(Number.isInteger(v)&&v>=2&&v<=40){goal=v;break;}
+  }
+  if(goal===null){ops[0]='+';ops[1]='+';goal=9;}
+  return {ops,value:goal,start:[rnd(1,9),rnd(1,9),rnd(1,9)]};
+}
+class LockGame{
+  constructor(root,cfg,onSolve){this.root=root;this.ops=cfg.ops;this.goal=cfg.value;this.start=cfg.start.slice();this.dials=cfg.start.slice();this.onSolve=onSolve;this.done=false;this.build();this.render();}
+  build(){this.root.innerHTML=`<div class="lock-eq"></div><div class="lock-dials"></div><div class="m3-done"></div>`;
+    this.elEq=this.root.querySelector('.lock-eq');this.elDials=this.root.querySelector('.lock-dials');this.elDone=this.root.querySelector('.m3-done');}
+  reset(){this.dials=this.start.slice();this.done=false;this.elDone.textContent='';this.render();}
+  val(){return apply(apply(this.dials[0],this.ops[0],this.dials[1]),this.ops[1],this.dials[2]);}
+  bump(i,d){if(this.done)return;this.dials[i]=Math.max(1,Math.min(9,this.dials[i]+d));this.render();
+    if(this.val()===this.goal){this.done=true;this.elDone.textContent='cracked — '+this.goal+'!';setTimeout(()=>this.onSolve(this.goal),650);}}
+  render(){
+    const v=this.val();
+    this.elEq.innerHTML=`${this.dials[0]} ${this.ops[0]} ${this.dials[1]} ${this.ops[1]} ${this.dials[2]} = <span class="cur">${v}</span> <span style="opacity:.5">/</span> <span class="goal">${this.goal}</span>`;
+    this.elDials.innerHTML='';
+    for(let i=0;i<3;i++){
+      const d=document.createElement('div');d.className='dial';
+      const up=document.createElement('button');up.className='op';up.textContent='+';up.onclick=()=>this.bump(i,1);
+      const dv=document.createElement('div');dv.className='dv';dv.textContent=this.dials[i];
+      const dn=document.createElement('button');dn.className='op';dn.textContent='−';dn.onclick=()=>this.bump(i,-1);
+      d.append(up,dv,dn);this.elDials.appendChild(d);
+    }
+  }
+  destroy(){}
+}
+
+/* ---- Sumguess: higher / lower, six tries ---- */
+class GuessGame{
+  constructor(root,cfg,onSolve){this.root=root;this.secret=cfg.value;this.onSolve=onSolve;this.cur=10;this.left=6;this.done=false;this.build();this.render();}
+  build(){this.root.innerHTML=`<div class="guess-cur"></div>
+    <div class="guess-ctl"><button class="op" data-d="-1">−</button><span class="guess-val"></span><button class="op" data-d="1">+</button></div>
+    <button class="btn primary guess-go">guess</button><div class="guess-fb"></div><div class="m3-done"></div>`;
+    this.elCur=this.root.querySelector('.guess-cur');this.elVal=this.root.querySelector('.guess-val');
+    this.elFb=this.root.querySelector('.guess-fb');this.elDone=this.root.querySelector('.m3-done');
+    this.root.querySelectorAll('.guess-ctl .op').forEach(b=>b.onclick=()=>this.bump(parseInt(b.dataset.d,10)));
+    this.root.querySelector('.guess-go').onclick=()=>this.go();}
+  reset(){this.cur=10;this.left=6;this.done=false;this.elFb.textContent='';this.elDone.textContent='';this.render();}
+  bump(d){if(this.done)return;this.cur=Math.max(1,Math.min(20,this.cur+d));this.render();}
+  go(){if(this.done||this.left<=0)return;
+    if(this.cur===this.secret){this.done=true;this.elDone.textContent='got it — '+this.secret+'!';setTimeout(()=>this.onSolve(this.secret),650);return;}
+    this.left--;this.elFb.textContent=this.cur<this.secret?'higher ↑':'lower ↓';
+    if(this.left<=0)this.elFb.textContent='out of guesses — reset to try again.';
+    this.render();}
+  render(){this.elCur.textContent='hidden number is 1–20 · '+this.left+' guesses left';this.elVal.textContent=this.cur;}
+  destroy(){}
+}
+
+/* ---- Tilt: balance the scale by filling the right pan ---- */
+function genTilt(){
+  const n=rnd(2,3),parts=[];for(let i=0;i<n;i++)parts.push(rnd(2,9));
+  const L=parts.reduce((a,b)=>a+b,0);
+  const tray=shuffle([...parts,rnd(2,9),rnd(2,9)]);
+  const left=L<=9?[L]:[Math.floor(L/2),L-Math.floor(L/2)];
+  return {value:L,tray,left};
+}
+class TiltGame{
+  constructor(root,cfg,onSolve){this.root=root;this.L=cfg.value;this.leftT=cfg.left.slice();this.tray0=cfg.tray.slice();this.tray=cfg.tray.slice();this.right=[];this.onSolve=onSolve;this.done=false;this.build();this.render();}
+  build(){this.root.innerHTML=`<div class="tilt-scale">
+      <div class="tilt-pan"><span class="lab">fixed weight</span><div class="tilt-tiles lt"></div><div class="tilt-sum ls"></div></div>
+      <div class="tilt-pan"><span class="lab">your side (tap to remove)</span><div class="tilt-tiles rt"></div><div class="tilt-sum rs"></div></div>
+    </div><div class="tilt-bal"></div><span class="lab" style="text-align:center;display:block">tray — tap to add</span>
+    <div class="tilt-tray"></div><div class="m3-done"></div>`;
+    this.elLt=this.root.querySelector('.lt');this.elLs=this.root.querySelector('.ls');
+    this.elRt=this.root.querySelector('.rt');this.elRs=this.root.querySelector('.rs');
+    this.elBal=this.root.querySelector('.tilt-bal');this.elTray=this.root.querySelector('.tilt-tray');
+    this.elDone=this.root.querySelector('.m3-done');}
+  reset(){this.tray=this.tray0.slice();this.right=[];this.done=false;this.elDone.textContent='';this.render();}
+  sumR(){return this.right.reduce((a,b)=>a+b,0);}
+  check(){if(this.sumR()===this.L){this.done=true;this.elDone.textContent='balanced — '+this.L+'!';setTimeout(()=>this.onSolve(this.L),650);}}
+  render(){
+    const tile=(v,cls,fn)=>{const d=document.createElement('div');d.className='tilt-tile'+(cls||'');d.textContent=v;if(fn)d.onclick=fn;return d;};
+    this.elLt.innerHTML='';this.leftT.forEach(v=>this.elLt.appendChild(tile(v,' fixed')));
+    this.elLs.textContent='= '+this.L;
+    this.elRt.innerHTML='';this.right.forEach((v,i)=>this.elRt.appendChild(tile(v,'',()=>{if(this.done)return;this.tray.push(v);this.right.splice(i,1);this.render();this.check();})));
+    this.elRs.textContent='= '+this.sumR();
+    this.elTray.innerHTML='';this.tray.forEach((v,i)=>this.elTray.appendChild(tile(v,'',()=>{if(this.done)return;this.right.push(v);this.tray.splice(i,1);this.render();this.check();})));
+    const r=this.sumR();this.elBal.textContent=r===this.L?'level!':(r<this.L?'your side is too light':'your side is too heavy');
+  }
+  destroy(){}
+}
+
+/* ---- mini-game registry ---- */
+const MINI_TITLES={match3:'match-3 — merge down to one',dice:'dice chain — hit the goal',lock:'lockpick — set the dials',guess:'sumguess — find the number',tilt:'tilt — balance the scale'};
+const MINI_HINTS={
+  match3:'tap 3 touching equal numbers to merge them into their sum. last number standing fills the node.',
+  dice:'chain the three dice with operations to reach the goal — a tiny Broach.',
+  lock:'nudge each dial up or down until the equation equals the goal.',
+  guess:'guess the hidden number; it says higher or lower. six tries.',
+  tilt:'add tiles to your side until it weighs exactly the same as the fixed weight.'
+};
+function makeMini(type,root,cfg,onSolve){
+  if(type==='match3')return new Match3Game(root,cfg,onSolve);
+  if(type==='dice')return new DiceGame(root,cfg,onSolve);
+  if(type==='lock')return new LockGame(root,cfg,onSolve);
+  if(type==='guess')return new GuessGame(root,cfg,onSolve);
+  return new TiltGame(root,cfg,onSolve);
+}
+function genMini(){
+  const type=['match3','dice','lock','guess','tilt'][rnd(0,4)];
+  if(type==='match3'){const g=genMatch3();return{type,cfg:{grid:g.grid,value:g.value},value:g.value};}
+  if(type==='dice'){const d=genDice();return{type,cfg:d,value:d.value};}
+  if(type==='lock'){const l=genLock();return{type,cfg:l,value:l.value};}
+  if(type==='guess'){const v=rnd(2,20);return{type,cfg:{value:v},value:v};}
+  const t=genTilt();return{type,cfg:t,value:t.value};
+}
+
+/* ---- party puzzle: 4 nodes, each a random mini-game; target derived after ---- */
+function genParty(){
+  const count=4,minis=[],nums=[];
+  for(let i=0;i<count;i++){const m=genMini();minis.push(m);nums.push(m.value);}
+  const p=mkPuzzle(nums,null);
+  p.targetHidden=true;p.sealed=nums.map(()=>true);p.minis=minis;
+  return p;
+}
+function partyTarget(nums){
+  for(let t=0;t<9000;t++){
+    const order=shuffle([...nums]);
+    let total=order[0],ok=true;
+    for(let i=1;i<order.length;i++){
+      const opts=['+','−','×'];
+      if(order[i]!==0&&total%order[i]===0)opts.push('÷');
+      total=apply(total,opts[rnd(0,opts.length-1)],order[i]);
+      if(!Number.isInteger(total)||total<1||total>4000){ok=false;break;}
+    }
+    if(ok&&total>=2&&total<=2000)return total;
+  }
+  return nums.reduce((a,b)=>a+b,0);
+}
+
+/* ============================================================
+   Game flow
+   ============================================================ */
+const MENU=document.getElementById('menu');
+const GAME=document.getElementById('game');
+const ABOUT=document.getElementById('about');
+const HOWTO=document.getElementById('howto');
+const BOARDS=document.getElementById('boards');
+const OVERLAY=document.getElementById('overlay');
+const SUBCARD=document.getElementById('subCard');
+const GAMEMSG=document.getElementById('gameMsg');
+const MODENAME=document.getElementById('modeName');
+const MODEHINT=document.getElementById('modeHint');
+
+let easySteps=4;  // (legacy; Easy is now fixed at 3 steps)
+let state={mode:null,setup:null};
+
+/* ---- session options (committed when a difficulty is picked) ---- */
+let menuTimer=false, menuCalc=false, menuBoard=false;   // menu choices
+let timerOn=false, sessionCalc=false, sessionBoard=false;  // committed for the run
+
+const TOOLS=document.getElementById('tools');
+const TIMER_DISPLAY=document.getElementById('timerDisplay');
+const TIMER_DISP=document.getElementById('timerDisp');
+let timerStart=0, timerElapsed=0, timerInterval=null, timerRunning=false;
+
+function fmtTime(ms){
+  const s=Math.floor(ms/1000), m=Math.floor(s/60), r=s%60;
+  return String(m).padStart(2,'0')+':'+String(r).padStart(2,'0');
+}
+function timerTick(){TIMER_DISP.textContent=fmtTime(timerElapsed+(Date.now()-timerStart));}
+function timerStartRun(){
+  if(!timerOn||timerRunning)return;
+  timerRunning=true;timerStart=Date.now();
+  timerInterval=setInterval(timerTick,200);timerTick();
+}
+function timerStop(){
+  if(!timerRunning)return;
+  timerElapsed+=Date.now()-timerStart;timerRunning=false;
+  clearInterval(timerInterval);timerTick();
+}
+function timerReset(){
+  clearInterval(timerInterval);timerRunning=false;timerElapsed=0;
+  TIMER_DISP.textContent=timerOn?'00:00':'off';
+}
+function finalTime(){
+  return timerElapsed+(timerRunning?Date.now()-timerStart:0);
+}
+
+const HINTS={
+  easy:'Connect every number into one chain and land exactly on the target.',
+  normal:'Six steps, seven numbers. Same rules — just more rope to hang yourself with.',
+  hard:'Solve PUZZLE A → its result fills the 🔗 node in PUZZLE B → then solve B.',
+  impossible:'Tap any “?” to open the puzzle hidden inside it. Reveal every number, then solve both linked boards.',
+  party:'Tap each “?” to play its mini-game (1:00 each). Win it to fill the node. Crack all four and the target appears.',
+  pro:'You set the target — now find the order and operations through these numbers that hit it.',
+  daily:'One puzzle, the same for everyone today. Come back tomorrow for a new one.',
+  zen:'No clock, no end. Solve, and the next one appears. Breathe.',
+  connect:'10 minutes. Each solved target (🔗) carries into the next puzzle as a node. Chain as many rounds as you can.'
+};
+
+function show(screen){[MENU,GAME,ABOUT,HOWTO].forEach(s=>s.classList.add('hidden'));screen.classList.remove('hidden');}
+
+function startMode(mode){
+  state.mode=mode;
+  connectStop();   // leaving / restarting any mode stops a running connect clock
+  const isConnect=mode==='connect';
+  // commit the menu choices for this run
+  timerOn=menuTimer; sessionCalc=menuCalc; sessionBoard=menuBoard;
+  if(mode==='zen')timerOn=false;   // zen is timeless
+  if(isConnect)timerOn=false;      // connect uses its own 10:00 countdown
+  TIMER_DISPLAY.classList.toggle('hidden',!timerOn);
+  CONNECT_TIMER.classList.toggle('hidden',!isConnect);
+  document.getElementById('calcToggle').classList.toggle('hidden',!sessionCalc);
+  document.getElementById('boardToggle').classList.toggle('hidden',!sessionBoard);
+  TOOLS.classList.toggle('hidden', !timerOn && !sessionCalc && !sessionBoard && !isConnect);
+  if(!sessionCalc){CALC.classList.add('hidden');document.getElementById('calcToggle').classList.remove('on');}
+  if(!sessionBoard){document.getElementById('whiteboard').classList.add('hidden');document.getElementById('boardToggle').classList.remove('on');}
+  let cap=({easy:'≤10',normal:'≤50',hard:'≤100',impossible:'≤100',party:'derived',pro:'your call',zen:'∞',connect:'10:00'}[mode]);
+  if(mode==='daily')cap=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  if(mode==='pro')cap='target '+state.proTarget;
+  MODENAME.innerHTML=mode.toUpperCase()+' <span class="cap">'+cap+'</span>';
+  MODEHINT.textContent=HINTS[mode];
+  GAMEMSG.className='game-msg';GAMEMSG.textContent='';
+  if(isConnect)connectStart();
+  buildPuzzles();
+  show(GAME);
+}
+
+function buildPuzzles(){
+  BOARDS.innerHTML='';
+  closeOverlay();
+  if(state.mode!=='connect'){timerReset();timerStartRun();}
+  const mode=state.mode;
+  if(mode==='easy'||mode==='normal'){
+    const steps=mode==='easy'?3:6;
+    const cap=mode==='easy'?10:50;
+    const card=document.createElement('div');card.className='board-card';
+    card.style.maxWidth='420px';BOARDS.appendChild(card);
+    new Board(card,generate(steps+1,cap),{hints:true,onSolve:()=>win()});
+  }
+  else if(mode==='hard'||mode==='impossible'){
+    const cap=100;
+    let pA,pB;
+    if(mode==='hard'){
+      pA=generate(5,20);                  // 4 steps, modest result
+      pB=generateWithLink(6,cap,pA.target); // 5 steps incl. link node
+    }else{
+      pA=sealPuzzle(generate(4,20));            // 3 steps, all sealed
+      pB=sealPuzzle(generateWithLink(5,cap,pA.target)); // 4 steps, sealed + link
+    }
+    const cardA=document.createElement('div');cardA.className='board-card';
+    const arrow=document.createElement('div');arrow.className='link-arrow';arrow.innerHTML='🔗<br>carries<br>into B →';
+    const cardB=document.createElement('div');cardB.className='board-card';
+    BOARDS.appendChild(cardA);BOARDS.appendChild(arrow);BOARDS.appendChild(cardB);
+
+    let boardB;
+    const boardA=new Board(cardA,pA,{
+      title:'PUZZLE A',hints:mode==='hard',
+      onOpenSub:(b,i)=>openSub(b,i),
+      onSolve:(b)=>{boardB.setLink(b.puzzle.target);boardB.flash('🔗 unlocked: '+b.puzzle.target,'good');}
+    });
+    boardB=new Board(cardB,pB,{
+      title:'PUZZLE B',hints:mode==='hard',
+      onOpenSub:(b,i)=>openSub(b,i),
+      onSolve:()=>win()
+    });
+  }
+  else if(mode==='party'){
+    const card=document.createElement('div');card.className='board-card';
+    card.style.maxWidth='420px';BOARDS.appendChild(card);
+    const board=new Board(card,genParty(),{
+      title:'PARTY BOARD',
+      onOpenSub:(b,i)=>openPartyNode(b,i),
+      onSolve:()=>win()
+    });
+  }
+  else if(mode==='pro'){
+    const card=document.createElement('div');card.className='board-card';
+    card.style.maxWidth='420px';BOARDS.appendChild(card);
+    new Board(card,genForTarget(state.proTarget,state.proCount),{hints:true,onSolve:()=>win()});
+  }
+  else if(mode==='daily'){
+    _rng=mulberry32(dateSeed());
+    const p=generate(6,50);
+    _rng=Math.random;
+    const card=document.createElement('div');card.className='board-card';
+    card.style.maxWidth='420px';BOARDS.appendChild(card);
+    new Board(card,p,{hints:true,onSolve:()=>win()});
+  }
+  else if(mode==='zen'){
+    const card=document.createElement('div');card.className='board-card';
+    card.style.maxWidth='420px';BOARDS.appendChild(card);
+    new Board(card,generate(rnd(4,6),30),{hints:true,onSolve:()=>zenNext()});
+  }
+  else if(mode==='connect'){
+    const p=genConnect(connectCarry,99);
+    const card=document.createElement('div');card.className='board-card';
+    card.style.maxWidth='420px';BOARDS.appendChild(card);
+    new Board(card,p,{hints:true,carryIndex:(p.carryIndex===undefined?-1:p.carryIndex),onSolve:(b)=>connectSolved(b)});
+  }
+}
+
+/* ---------- Connecting mode ---------- */
+let connectClock=null, connectLeft=0, connectRounds=0, connectCarry=null, connectOver=false;
+const CONNECT_TIMER=document.getElementById('connectTimer');
+const CONNECT_DISP=document.getElementById('connectDisp');
+
+function genConnect(carry,cap){
+  if(carry==null)return generate(5,cap);     // round 1: a fresh 5-number puzzle
+  const p=generateWithLink(5,cap,carry);     // later rounds: puzzle that contains the carried value
+  p.carryIndex=p.linkIndex;                   // remember which node it is (for the highlight)
+  p.linkIndex=-1;                             // but it's a known, visible node — not a hidden link
+  return p;
+}
+function connectFmt(){const m=Math.floor(connectLeft/60),s=connectLeft%60;return m+':'+String(s).padStart(2,'0');}
+function connectDraw(){CONNECT_DISP.textContent=connectFmt();CONNECT_TIMER.classList.toggle('low',connectLeft<=30);}
+function connectStop(){if(connectClock){clearInterval(connectClock);connectClock=null;}}
+function connectStart(){
+  connectStop();
+  connectRounds=0;connectCarry=null;connectOver=false;connectLeft=600;
+  connectDraw();
+  connectClock=setInterval(()=>{
+    connectLeft--;connectDraw();
+    if(connectLeft<=0){connectStop();connectEnd();}
+  },1000);
+}
+function connectSolved(b){
+  if(connectOver)return;
+  connectRounds++;
+  connectCarry=b.puzzle.target;
+  GAMEMSG.className='game-msg good';
+  GAMEMSG.innerHTML='round '+connectRounds+' ✓ — carrying <b>'+connectCarry+'</b> into the next.';
+  setTimeout(()=>{if(!connectOver){GAMEMSG.textContent='';GAMEMSG.className='game-msg';buildPuzzles();}},900);
+}
+const CONNECT_QUIPS={
+  z:[`Zero rounds. A barnacle could manage that — and barnacles don't even have hands.`,
+     `Zero. The numbers waited, and you simply… didn't.`,
+     `Nothing? Bold. Statistically you tied with a brick.`],
+  a:[`%s round. Technically motion. So is falling down stairs.`,
+     `%s rounds. The calculator filed a complaint about under-use.`,
+     `%s rounds — better than exactly no whales. Whales can't count.`],
+  b:[`%s rounds — better than 90%% of all the whales in the world. The other 10%% are suspiciously good at arithmetic.`,
+     `%s rounds. Respectable. A pocket calculator shed a single proud tear.`,
+     `%s rounds. Solidly mediocre, in the most flattering sense.`],
+  c:[`%s rounds! Are you part abacus? Be honest.`,
+     `%s rounds. Touch some grass. Strictly non-numerical grass.`,
+     `%s rounds — that's better than 99%% of whales, 100%% of clams, and at least one mathematician.`]
+};
+function connectQuip(n){
+  let pool;
+  if(n===0)pool=CONNECT_QUIPS.z;
+  else if(n<=2)pool=CONNECT_QUIPS.a;
+  else if(n<=6)pool=CONNECT_QUIPS.b;
+  else pool=CONNECT_QUIPS.c;
+  return pool[Math.floor(Math.random()*pool.length)].replace(/%s/g,n).replace(/%%/g,'%');
+}
+function connectEnd(){
+  connectOver=true;connectStop();
+  const quip=connectQuip(connectRounds);
+  SUBCARD.innerHTML=`
+    <div class="sub-head">time!</div>
+    <div class="connect-rounds">You went <b>${connectRounds}</b> round${connectRounds===1?'':'s'}.</div>
+    <div class="connect-quip">${quip}</div>
+    <button class="btn primary" id="connectAgain" style="display:block;margin:14px auto 0">play again →</button>
+    <button class="btn" id="connectMenu" style="display:block;margin:8px auto 0">back to menu</button>`;
+  SUBCARD.querySelector('#connectAgain').onclick=()=>{OVERLAY.classList.add('hidden');connectStart();buildPuzzles();};
+  SUBCARD.querySelector('#connectMenu').onclick=()=>{OVERLAY.classList.add('hidden');connectStop();show(MENU);};
+  OVERLAY.classList.remove('hidden');
+}
+
+function zenNext(){
+  state.zenCount=(state.zenCount||0)+1;
+  GAMEMSG.className='game-msg good';
+  GAMEMSG.innerHTML='solved — that\u2019s '+state.zenCount+'. next one coming…<span class="joke">'+pickJoke()+'</span>';
+  setTimeout(()=>{GAMEMSG.textContent='';buildPuzzles();},1100);
+}
+
+function openSub(parent,nodeIndex){
+  const sub=parent.puzzle.subPuzzles[nodeIndex];
+  SUBCARD.innerHTML=`
+    <div class="sub-head">a puzzle inside a number</div>
+    <div class="sub-sub">solve this to reveal what this node is worth</div>
+    <div class="sub-holder"></div>
+    <button class="btn close-sub">close (stays sealed)</button>`;
+  const holder=SUBCARD.querySelector('.sub-holder');
+  new Board(holder,sub,{onSolve:()=>{
+    parent.reveal(nodeIndex);
+    setTimeout(()=>OVERLAY.classList.add('hidden'),650);
+  }});
+  SUBCARD.querySelector('.close-sub').onclick=()=>OVERLAY.classList.add('hidden');
+  OVERLAY.classList.remove('hidden');
+}
+
+let activeMini=null, partyClock=null;
+function closeOverlay(){
+  if(partyClock){clearInterval(partyClock);partyClock=null;}
+  if(activeMini&&activeMini.destroy)activeMini.destroy();
+  activeMini=null;OVERLAY.classList.add('hidden');
+}
+function openPartyNode(parent,nodeIndex){
+  const node=parent.puzzle.minis[nodeIndex];
+  SUBCARD.innerHTML=`
+    <div class="sub-head">${MINI_TITLES[node.type]}</div>
+    <div class="m3-bar"><span class="m3-timer">1:00</span><button class="btn party-reset">↻ reset</button></div>
+    <div class="sub-sub">${MINI_HINTS[node.type]}</div>
+    <div class="mini-holder"></div>
+    <button class="btn close-sub">close (stays sealed)</button>`;
+  const holder=SUBCARD.querySelector('.mini-holder');
+  const elTimer=SUBCARD.querySelector('.m3-timer');
+  let left=60;
+  const setT=()=>{const m=Math.floor(left/60),s=left%60;elTimer.textContent=m+':'+String(s).padStart(2,'0');elTimer.classList.toggle('low',left<=15);};
+  partyClock=setInterval(()=>{
+    left--;setT();
+    if(left<=0){left=60;setT();if(activeMini&&activeMini.reset)activeMini.reset();}
+  },1000);
+  setT();
+  activeMini=makeMini(node.type,holder,node.cfg,(value)=>{
+    if(partyClock){clearInterval(partyClock);partyClock=null;}
+    parent.reveal(nodeIndex);
+    if(parent.allRevealed()){
+      const t=partyTarget(parent.puzzle.nums);
+      parent.revealTarget(t);
+      GAMEMSG.className='game-msg good';
+      GAMEMSG.textContent='all four cracked! your target is '+t+' — now solve the chain.';
+    }
+    closeOverlay();
+  });
+  SUBCARD.querySelector('.party-reset').onclick=()=>{left=60;setT();if(activeMini&&activeMini.reset)activeMini.reset();};
+  SUBCARD.querySelector('.close-sub').onclick=closeOverlay;
+  OVERLAY.classList.remove('hidden');
+}
+
+function openProSetup(){
+  let val='', steps=4;   // steps = operations; numbers dealt = steps+1
+  SUBCARD.innerHTML=`
+    <div class="sub-head">Pro Mode — set your target</div>
+    <div class="sub-sub">type a target (two digits or more), choose your steps (three or more), and we'll deal a solvable set.</div>
+    <div class="calc-disp" id="proDisp" style="text-align:center;font-size:30px">0</div>
+    <div class="calc-grid" style="margin-bottom:10px">
+      <button class="ck" data-k="1">1</button><button class="ck" data-k="2">2</button><button class="ck" data-k="3">3</button><button class="ck" data-k="⌫">⌫</button>
+      <button class="ck" data-k="4">4</button><button class="ck" data-k="5">5</button><button class="ck" data-k="6">6</button><button class="ck" data-k="C">C</button>
+      <button class="ck" data-k="7">7</button><button class="ck" data-k="8">8</button><button class="ck" data-k="9">9</button><button class="ck" data-k="0">0</button>
+    </div>
+    <div class="limit-row" id="proSteps"><span class="lbl">steps:</span>
+      <button class="lim" data-n="3">3</button><button class="lim sel" data-n="4">4</button>
+      <button class="lim" data-n="5">5</button><button class="lim" data-n="6">6</button></div>
+    <div class="sub-sub" id="proWarn" style="color:var(--red);min-height:20px;text-align:center"></div>
+    <button class="btn primary" id="proDeal" style="display:block;margin:6px auto 0">deal my numbers →</button>
+    <button class="btn" id="proCancel" style="display:block;margin:8px auto 0">cancel</button>`;
+  const disp=SUBCARD.querySelector('#proDisp');
+  const warn=SUBCARD.querySelector('#proWarn');
+  const draw=()=>disp.textContent=val===''?'0':val;
+  SUBCARD.querySelector('.calc-grid').addEventListener('click',e=>{
+    const b=e.target.closest('.ck');if(!b)return;const k=b.dataset.k;
+    if(k==='C')val='';else if(k==='⌫')val=val.slice(0,-1);
+    else if(val.length<3)val=(val==='0'?'':val)+k;
+    warn.textContent='';draw();
+  });
+  SUBCARD.querySelector('#proSteps').addEventListener('click',e=>{
+    const b=e.target.closest('.lim');if(!b)return;
+    steps=parseInt(b.dataset.n,10);
+    SUBCARD.querySelectorAll('#proSteps .lim').forEach(l=>l.classList.toggle('sel',l===b));
+  });
+  SUBCARD.querySelector('#proDeal').onclick=()=>{
+    const T=parseInt(val||'0',10);
+    if(!T||T<10){warn.textContent='target must be two digits (10 or more).';return;}
+    if(steps<3){warn.textContent='you need at least three steps.';return;}
+    state.proTarget=Math.min(T,999);state.proCount=steps+1;  // numbers = steps + 1
+    closeOverlay();startMode('pro');
+  };
+  SUBCARD.querySelector('#proCancel').onclick=closeOverlay;
+  OVERLAY.classList.remove('hidden');
+}
+
+const JOKES=[
+`The numbers never stood a chance.`,
+`Pythagoras is somewhere, nodding slowly.`,
+`That's one way to use up perfectly good digits.`,
+`Math: still undefeated, but you tied this round.`,
+`You carried the one. Emotionally and arithmetically.`,
+`Somewhere a spreadsheet just felt threatened.`,
+`Statistically improbable, yet here we are.`,
+`The target had it coming.`,
+`Solved — your calculator can stop sweating.`,
+`Long division wept. You ignored it. Good.`,
+`Five out of four people struggle with fractions. Not you.`,
+`You've peaked. It's all rounding errors from here.`,
+`The equals sign approves this message.`,
+`Numbers: defeated. Ego: dangerously inflated.`,
+`That was acute performance.`,
+`Don't let it go to your head — it's already divided.`,
+`Euclid would've allowed it.`,
+`You did the math so the math couldn't do you.`,
+`Another one bites the decimal dust.`,
+`Technically correct — the best kind of correct.`,
+`The chain held. Unlike your sleep schedule.`,
+`Zero regrets. Also zero remainder.`,
+`Math teachers everywhere felt a disturbance.`,
+`You're basically a human abacus now.`,
+`Solved with the confidence of someone who guessed.`,
+`Order of operations? Never heard of her.`,
+`The numbers aligned. The stars did not.`,
+`Take that, arithmetic.`,
+`Newton is rolling over. In approval, probably.`,
+`You added value. Literally.`,
+`That target was just asking to be hit.`,
+`Calculated. Like your every move should be.`,
+`Proof by exhaustion — yours.`,
+`You found the answer hiding in plain sight. Show-off.`,
+`The remainder of your day can now begin.`,
+`Pure math, zero shame.`,
+`A flawless victory, give or take a rounding.`,
+`Subtraction's loss, your gain.`,
+`You've got their number. All of them.`,
+`Solved. The abacus is obsolete and so is humility.`,
+`That's the sum of your talents, apparently.`,
+`Multiplication tables: shaking.`,
+`Counting on you was a good call.`,
+`The math checks out. Suspicious.`,
+`You did it without your fingers. Mostly.`,
+`An integer well spent.`,
+`The numbers have left the building.`,
+`Solved faster than a tax return, slower than light.`,
+`You're operating at full capacity. The operation is plus.`,
+`Geometry would be proud, if it had feelings.`,
+`The target is down. Repeat, the target is down.`,
+`Precisely the right amount of correct.`,
+`You bent the numbers to your will. Briefly.`,
+`Math: 0, You: 1. Don't get used to it.`,
+`That equation just got served.`,
+`A balanced result, unlike your snack choices.`,
+`Solved — somewhere a Sudoku felt jealous.`,
+`You crunched the numbers. They crunched back. You won.`,
+`Arithmetic surrenders unconditionally.`,
+`The decimal point knows its place. So do you now.`,
+`You've achieved mathematical closure. Emotional closure pending.`,
+`Nailed it, plus or minus a miracle.`,
+`That's a wrap on the integers.`,
+`The calculator is filing for unemployment.`,
+`Sum people have it, and today, so do you.`,
+`You divided and conquered. Mostly conquered.`,
+`Right answer, wrong amount of celebrating.`,
+`The numbers folded like cheap lawn chairs.`,
+`Solved. Archimedes just yelled eureka out of habit.`,
+`You're a few digits short of a genius. Just a few.`,
+`Math problem: solved. Life problems: still loading.`,
+`The proof is in the puzzle.`,
+`You made the target an offer it couldn't refuse.`,
+`Equation: neutralized. Threat level: zero.`,
+`That's some quality number-wrangling.`,
+`The abacus salutes you.`,
+`Solved with surgical, slightly lucky precision.`,
+`You spoke math, and math listened.`,
+`Fibonacci would add you to the sequence.`,
+`Another target retired early.`,
+`You did it. The numbers are still in therapy.`,
+`Clean solve. Suspiciously clean.`,
+`Numbers crunched, ego un-crunched.`,
+`The equals sign finally got some respect.`,
+`You out-mathed the math.`,
+`Solved — now go touch some non-numerical grass.`,
+`The target never saw the chain coming.`,
+`Calculated risk, zero risk, all calculation.`,
+`You're rounding up to genius. Generously.`,
+`Subtraction never stood a chance against you.`,
+`The numbers bowed. Briefly. Then scattered.`,
+`Solved, and only mildly by accident.`,
+`Math: humbled. You: insufferable. As intended.`,
+`You connected the dots. And the numbers.`,
+`That's a textbook solve. Burn the textbook.`,
+`The target has been mathematically retired.`,
+`Eleven out of ten dentists don't understand this joke.`,
+`You added, subtracted, and somehow thrived.`,
+`The chain is complete. So is your smugness.`,
+`Solved. The universe remains indifferent, but congrats.`
+];
+function pickJoke(){return JOKES[Math.floor(Math.random()*JOKES.length)];}
+
+function win(){
+  timerStop();
+  GAMEMSG.className='game-msg good';
+  const lines={
+    easy:'Solved. Every number used, dead on target.',
+    normal:'Clean run through all six steps. Nice.',
+    hard:'Both boards down and linked. That was real work.',
+    impossible:'You cracked open every number and solved both boards. Genuinely impossible — and you did it.',
+    party:'Party solved! Mini-games to chain, all in one go. 🎉',
+    pro:'Nailed your own target. Show-off. 😎',
+    daily:'Today\u2019s puzzle, solved. See you tomorrow.'
+  };
+  let msg=lines[state.mode]||'Solved.';
+  if(timerOn) msg+=' ⏱ '+fmtTime(finalTime());
+  GAMEMSG.innerHTML=msg+'<span class="joke">'+pickJoke()+'</span>';
+}
+
+/* ---- menu wiring ---- */
+const TIP=document.getElementById('tip');
+document.querySelectorAll('.dcard').forEach(card=>{
+  card.addEventListener('click',()=>{
+    const m=card.dataset.mode;
+    if(m==='pro')openProSetup();else startMode(m);
+  });
+  card.addEventListener('mousemove',e=>{
+    TIP.textContent=card.dataset.tip||'';
+    TIP.classList.add('show');
+    let x=e.clientX+16;
+    if(x+250>window.innerWidth)x=e.clientX-250;
+    TIP.style.left=x+'px';TIP.style.top=e.clientY+'px';
+  });
+  card.addEventListener('mouseleave',()=>TIP.classList.remove('show'));
+});
+document.getElementById('toMenu').addEventListener('click',()=>{timerStop();connectStop();show(MENU);});
+document.getElementById('restart').addEventListener('click',()=>{
+  GAMEMSG.className='game-msg';GAMEMSG.textContent='';buildPuzzles();
+});
+
+/* ---- about / how-to wiring ---- */
+document.getElementById('toAbout').addEventListener('click',()=>show(ABOUT));
+document.getElementById('aboutBack').addEventListener('click',()=>show(MENU));
+document.getElementById('toHowto').addEventListener('click',()=>show(HOWTO));
+document.getElementById('howtoBack').addEventListener('click',()=>show(MENU));
+
+/* ---- menu session-option toggles (commit on difficulty click) ---- */
+const OPT_TIMER=document.getElementById('optTimer');
+const OPT_CALC=document.getElementById('optCalc');
+OPT_TIMER.addEventListener('click',()=>{
+  menuTimer=!menuTimer;OPT_TIMER.classList.toggle('on',menuTimer);
+  OPT_TIMER.textContent='⏱ timer: '+(menuTimer?'on':'off');
+});
+OPT_CALC.addEventListener('click',()=>{
+  menuCalc=!menuCalc;OPT_CALC.classList.toggle('on',menuCalc);
+  OPT_CALC.textContent='🧮 calculator: '+(menuCalc?'on':'off');
+});
+const OPT_BOARD=document.getElementById('optBoard');
+OPT_BOARD.addEventListener('click',()=>{
+  menuBoard=!menuBoard;OPT_BOARD.classList.toggle('on',menuBoard);
+  OPT_BOARD.textContent='🖊 whiteboard: '+(menuBoard?'on':'off');
+});
+
+/* ---- calculator: full expression evaluator (proper precedence) ---- */
+const CALC=document.getElementById('calc');
+const CALC_DISP=document.getElementById('calcDisp');
+const CALC_TOGGLE=document.getElementById('calcToggle');
+let cExpr='', cEvaled=false;
+
+function evalExpr(s){
+  let i=0;const toks=[];
+  while(i<s.length){
+    const c=s[i];
+    if(c===' '){i++;continue;}
+    if('0123456789.'.includes(c)){let n=c;i++;while(i<s.length&&'0123456789.'.includes(s[i])){n+=s[i++];}toks.push({t:'n',v:parseFloat(n)});continue;}
+    if('+−×÷()'.includes(c)){toks.push({t:'o',v:c});i++;continue;}
+    throw 0;
+  }
+  let p=0;const pk=()=>toks[p],nx=()=>toks[p++];
+  function E(){let v=T();while(pk()&&pk().t==='o'&&(pk().v==='+'||pk().v==='−')){const o=nx().v;const r=T();v=o==='+'?v+r:v-r;}return v;}
+  function T(){let v=F();while(pk()&&pk().t==='o'&&(pk().v==='×'||pk().v==='÷')){const o=nx().v;const r=F();if(o==='×')v=v*r;else{if(r===0)throw 0;v=v/r;}}return v;}
+  function F(){const k=pk();if(!k)throw 0;
+    if(k.t==='o'&&k.v==='−'){nx();return -F();}
+    if(k.t==='o'&&k.v==='+'){nx();return F();}
+    if(k.t==='o'&&k.v==='('){nx();const v=E();if(!pk()||pk().v!==')')throw 0;nx();return v;}
+    if(k.t==='n'){nx();return k.v;}
+    throw 0;}
+  const r=E();if(p!==toks.length)throw 0;return r;
+}
+function calcRender(){CALC_DISP.textContent=cExpr===''?'0':cExpr;CALC_DISP.scrollLeft=CALC_DISP.scrollWidth;}
+function calcKey(k){
+  if(k==='C'){cExpr='';cEvaled=false;calcRender();return;}
+  if(k==='⌫'){cExpr=cExpr.slice(0,-1);cEvaled=false;calcRender();return;}
+  if(k==='='){
+    if(cExpr==='')return;
+    try{let r=evalExpr(cExpr);r=Math.round(r*1e6)/1e6;cExpr=String(r);}
+    catch(e){cExpr='Error';}
+    cEvaled=true;calcRender();return;
+  }
+  const isNum='0123456789.'.includes(k);
+  if(cExpr==='Error'){cExpr='';cEvaled=false;}
+  if(cEvaled){if(isNum)cExpr='';cEvaled=false;}
+  cExpr+=k;calcRender();
+}
+document.getElementById('calcGrid').addEventListener('click',e=>{
+  const b=e.target.closest('.ck');if(!b)return;calcKey(b.dataset.k);
+});
+CALC_TOGGLE.addEventListener('click',()=>{
+  const open=CALC.classList.toggle('hidden')===false;
+  CALC_TOGGLE.classList.toggle('on',open);
+});
+document.getElementById('calcClose').addEventListener('click',()=>{
+  CALC.classList.add('hidden');CALC_TOGGLE.classList.remove('on');
+});
+
+/* ---- whiteboard: free-draw with the mouse / finger ---- */
+const WB=document.getElementById('whiteboard');
+const WB_TOGGLE=document.getElementById('boardToggle');
+const WB_CANVAS=document.getElementById('wbCanvas');
+const wctx=WB_CANVAS.getContext('2d');
+wctx.lineWidth=2.6;wctx.lineCap='round';wctx.lineJoin='round';wctx.strokeStyle='#26303b';
+let wbDrawing=false,wbLastX=0,wbLastY=0;
+function wbPos(e){
+  const r=WB_CANVAS.getBoundingClientRect();
+  return [(e.clientX-r.left)*(WB_CANVAS.width/r.width),(e.clientY-r.top)*(WB_CANVAS.height/r.height)];
+}
+WB_CANVAS.addEventListener('pointerdown',e=>{
+  wbDrawing=true;[wbLastX,wbLastY]=wbPos(e);
+  try{WB_CANVAS.setPointerCapture(e.pointerId);}catch(_){}
+  // a dot, so a single tap leaves a mark
+  wctx.beginPath();wctx.arc(wbLastX,wbLastY,1.3,0,Math.PI*2);wctx.fillStyle='#26303b';wctx.fill();
+});
+WB_CANVAS.addEventListener('pointermove',e=>{
+  if(!wbDrawing)return;
+  const [x,y]=wbPos(e);
+  wctx.beginPath();wctx.moveTo(wbLastX,wbLastY);wctx.lineTo(x,y);wctx.stroke();
+  [wbLastX,wbLastY]=[x,y];
+});
+const wbStop=()=>{wbDrawing=false;};
+WB_CANVAS.addEventListener('pointerup',wbStop);
+WB_CANVAS.addEventListener('pointercancel',wbStop);
+WB_CANVAS.addEventListener('pointerleave',wbStop);
+document.getElementById('wbClear').addEventListener('click',()=>wctx.clearRect(0,0,WB_CANVAS.width,WB_CANVAS.height));
+WB_TOGGLE.addEventListener('click',()=>{
+  const open=WB.classList.toggle('hidden')===false;
+  WB_TOGGLE.classList.toggle('on',open);
+});
+document.getElementById('wbClose').addEventListener('click',()=>{
+  WB.classList.add('hidden');WB_TOGGLE.classList.remove('on');
+});
+
+show(MENU);
+</script>
+</body>
+</html>
